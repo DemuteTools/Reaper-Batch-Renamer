@@ -38,6 +38,14 @@ local state = {
     lastSelectedItemPointers = {},
     lastSelectedTrackPointers = {},
     lastFolderItemSelection = {},
+    -- Project state tracking for auto-refresh
+    lastTrackCount = 0,
+    lastItemCount = 0,
+    lastMarkerCount = 0,
+    lastRegionCount = 0,
+    lastTimeSelStart = 0,
+    lastTimeSelEnd = 0,
+    lastTrackNames = {},
     -- Operation mode
     operation = "none",  -- none, removeNumbers, removeSpecialChars, removeExtension, cleanSpaces, extractBrackets, extractParens, etc.
     -- Lua Pattern support
@@ -113,12 +121,35 @@ local state = {
     folderItemSeparator = "_",
     folderItemCustomPattern = "{region}_{track}",
     folderItemAutoIncrement = true,  -- Auto-increment duplicate names (default: true)
+    folderItemExcludeTag = "",  -- Tag to exclude tracks/regions from naming
     -- Jump to position settings
     jumpToPosition = true  -- Jump to selected item position (default: true)
 }
 
 -- Initialize
 Settings.load()
+
+-- Load folder items settings if they exist
+if Settings.current.folderItems then
+    state.folderItemPattern = Settings.current.folderItems.pattern or state.folderItemPattern
+    state.folderItemSeparator = Settings.current.folderItems.separator or state.folderItemSeparator
+    state.folderItemCustomPattern = Settings.current.folderItems.customPattern or state.folderItemCustomPattern
+    state.folderItemAutoIncrement = Settings.current.folderItems.autoIncrement ~= nil and Settings.current.folderItems.autoIncrement or state.folderItemAutoIncrement
+    state.folderItemExcludeTag = Settings.current.folderItems.excludeTag or state.folderItemExcludeTag
+end
+
+-- Function to save folder items settings
+local function saveFolderItemsSettings()
+    if not Settings.current.folderItems then
+        Settings.current.folderItems = {}
+    end
+    Settings.current.folderItems.pattern = state.folderItemPattern
+    Settings.current.folderItems.separator = state.folderItemSeparator
+    Settings.current.folderItems.customPattern = state.folderItemCustomPattern
+    Settings.current.folderItems.autoIncrement = state.folderItemAutoIncrement
+    Settings.current.folderItems.excludeTag = state.folderItemExcludeTag
+    Settings.save()
+end
 
 -- Refresh current list
 local function refreshCurrentList()
@@ -152,6 +183,13 @@ local function refreshCurrentList()
     
     if module then
         local ok, result = pcall(function()
+            -- Set options for Folder Items module before getting list
+            if state.currentTab == "Folder Items" and module.setOptions then
+                module.setOptions({
+                    excludeTag = state.folderItemExcludeTag
+                })
+            end
+            
             if module.getListWithSelection then
                 state.currentList = module.getListWithSelection(state.useSelectedOnly)
             else
@@ -174,6 +212,63 @@ local function autoSelectAll()
             item.checked = true
         end
     end
+end
+
+-- Check if project state has changed (tracks, items, regions, markers, time selection)
+local function hasProjectStateChanged()
+    local changed = false
+    
+    -- Check track count
+    local trackCount = reaper.CountTracks(0)
+    if trackCount ~= state.lastTrackCount then
+        changed = true
+        state.lastTrackCount = trackCount
+    end
+    
+    -- Check item count
+    local itemCount = reaper.CountMediaItems(0)
+    if itemCount ~= state.lastItemCount then
+        changed = true
+        state.lastItemCount = itemCount
+    end
+    
+    -- Check region/marker count
+    local retval, num_markers, num_regions = reaper.CountProjectMarkers(0)
+    if num_markers ~= state.lastMarkerCount or num_regions ~= state.lastRegionCount then
+        changed = true
+        state.lastMarkerCount = num_markers
+        state.lastRegionCount = num_regions
+    end
+    
+    -- Check time selection
+    local startTime, endTime = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
+    if startTime ~= state.lastTimeSelStart or endTime ~= state.lastTimeSelEnd then
+        changed = true
+        state.lastTimeSelStart = startTime
+        state.lastTimeSelEnd = endTime
+    end
+    
+    -- Check if any track names have changed (for current tab only)
+    if not changed and state.currentTab == "Tracks" then
+        for i = 0, trackCount - 1 do
+            local track = reaper.GetTrack(0, i)
+            local _, trackName = reaper.GetTrackName(track)
+            local trackKey = tostring(track)
+            if state.lastTrackNames and state.lastTrackNames[trackKey] ~= trackName then
+                changed = true
+                break
+            end
+        end
+        -- Update track names cache
+        state.lastTrackNames = {}
+        for i = 0, trackCount - 1 do
+            local track = reaper.GetTrack(0, i)
+            local _, trackName = reaper.GetTrackName(track)
+            state.lastTrackNames[tostring(track)] = trackName
+        end
+    end
+    
+    return changed
 end
 
 -- Check if selection has changed
@@ -312,6 +407,7 @@ local function updatePreview()
                     separator = state.folderItemSeparator,
                     customPattern = state.folderItemCustomPattern,
                     autoIncrement = state.folderItemAutoIncrement,
+                    excludeTag = state.folderItemExcludeTag,
                     -- Add all transformation options for full pattern system
                     operation = state.operation,
                     findText = state.findText,
@@ -721,6 +817,7 @@ local function loop()
                         if reaper.ImGui_Selectable(ctx, label, isSelected) then
                             state.folderItemPattern = key
                             state.needsPreview = true
+                            saveFolderItemsSettings()
                         end
                         if isSelected then
                             reaper.ImGui_SetItemDefaultFocus(ctx)
@@ -737,16 +834,19 @@ local function loop()
                 if reaper.ImGui_Button(ctx, "_##Sep") then
                     state.folderItemSeparator = "_"
                     state.needsPreview = true
+                    saveFolderItemsSettings()
                 end
                 reaper.ImGui_SameLine(ctx)
                 if reaper.ImGui_Button(ctx, "-##Sep") then
                     state.folderItemSeparator = "-"
                     state.needsPreview = true
+                    saveFolderItemsSettings()
                 end
                 reaper.ImGui_SameLine(ctx)
                 if reaper.ImGui_Button(ctx, "Space##Sep") then
                     state.folderItemSeparator = " "
                     state.needsPreview = true
+                    saveFolderItemsSettings()
                 end
                 reaper.ImGui_SameLine(ctx)
                 reaper.ImGui_SetNextItemWidth(ctx, 50)
@@ -754,6 +854,7 @@ local function loop()
                 if sepChanged then
                     state.folderItemSeparator = newSep
                     state.needsPreview = true
+                    saveFolderItemsSettings()
                 end
                 
                 -- Custom pattern input (if custom selected)
@@ -766,6 +867,7 @@ local function loop()
                     if patternChanged then
                         state.folderItemCustomPattern = newPattern
                         state.needsPreview = true
+                        saveFolderItemsSettings()
                     end
                     
                     -- Pattern help
@@ -781,8 +883,20 @@ local function loop()
                 if autoIncChanged then
                     state.folderItemAutoIncrement = autoInc
                     state.needsPreview = true
+                    saveFolderItemsSettings()
                 end
                 
+                -- Exclude tag option
+                reaper.ImGui_Text(ctx, "Exclude tag:")
+                reaper.ImGui_SameLine(ctx)
+                reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+                reaper.ImGui_SetNextItemWidth(ctx, 100)
+                local excludeTagChanged, newExcludeTag = reaper.ImGui_InputText(ctx, "##ExcludeTag", state.folderItemExcludeTag)
+                if excludeTagChanged then
+                    state.folderItemExcludeTag = newExcludeTag
+                    state.needsPreview = true
+                    saveFolderItemsSettings()
+                end
               
                 reaper.ImGui_Separator(ctx)
                 
@@ -1157,7 +1271,7 @@ local function loop()
                 reaper.ImGui_TableSetupColumn(ctx, "##Check", reaper.ImGui_TableColumnFlags_WidthFixed(), 30)
                 
                 if state.currentTab == "Folder Items" then
-                    reaper.ImGui_TableSetupColumn(ctx, "Current Notes", reaper.ImGui_TableColumnFlags_WidthStretch())
+                    reaper.ImGui_TableSetupColumn(ctx, "Current Name", reaper.ImGui_TableColumnFlags_WidthStretch())
                     reaper.ImGui_TableSetupColumn(ctx, "Target Name", reaper.ImGui_TableColumnFlags_WidthStretch())
                     reaper.ImGui_TableSetupColumn(ctx, "Context (Region/Track)", reaper.ImGui_TableColumnFlags_WidthStretch())
                 else
@@ -1215,7 +1329,7 @@ local function loop()
                             end
                         else
                             -- Normal mode: show clickable text
-                            local displayText = item.notes or item.name or ""
+                            local displayText = item.name or ""
                             if displayText == "" then
                                 displayText = "(empty)"
                             end
@@ -1230,8 +1344,8 @@ local function loop()
                                     -- Double-click: activate editing
                                     state.editingIndex = i
                                     state.editingColumn = "current"
-                                    state.editingText = item.notes or item.name or ""
-                                    state.editingOriginal = item.notes or item.name or ""
+                                    state.editingText = item.name or ""
+                                    state.editingOriginal = item.name or ""
                                     state.needsFocus = true
                                     state.selectedIndex = nil
                                 else
@@ -1398,6 +1512,12 @@ local function loop()
         
         
         reaper.ImGui_End(ctx)
+    end
+    
+    -- Check for project state changes (auto-refresh)
+    if hasProjectStateChanged() then
+        state.needsRefresh = true
+        state.needsPreview = true
     end
     
     -- Check for selection changes

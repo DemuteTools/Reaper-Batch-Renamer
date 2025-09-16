@@ -81,6 +81,15 @@ function Settings.getDefaultSettings()
             backupBeforeApply = false,
             logOperations = false,
             showTooltips = true
+        },
+        
+        -- Folder Items options
+        folderItems = {
+            pattern = "hierarchical",
+            separator = "_",
+            customPattern = "{region}_{track}",
+            autoIncrement = true,
+            excludeTag = "//"
         }
     }
 end

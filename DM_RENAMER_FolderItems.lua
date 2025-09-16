@@ -7,6 +7,14 @@ local FolderItems = {}
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
 local Common = dofile(script_path .. "DM_RENAMER_Common.lua")
 
+-- Module-level storage for current options
+local currentOptions = {}
+
+-- Set current options (can be called before getting list)
+function FolderItems.setOptions(options)
+    currentOptions = options or {}
+end
+
 -- Check if an item is empty (no audio or MIDI content)
 function FolderItems.isEmptyItem(item)
     local takeCount = reaper.CountTakes(item)
@@ -45,7 +53,7 @@ function FolderItems.isEmptyItem(item)
 end
 
 -- Get regions at a specific position
-function FolderItems.getRegionsAtPosition(position, length)
+function FolderItems.getRegionsAtPosition(position, length, excludeTag)
     local regions = {parent = nil, children = {}}
     local itemEnd = position + length
     local allRegions = {}
@@ -57,12 +65,15 @@ function FolderItems.getRegionsAtPosition(position, length)
         if retval > 0 and isrgn then
             -- Check if the item is within this region
             if position >= pos and position < rgnend then
-                table.insert(allRegions, {
-                    name = name,
-                    pos = pos,
-                    endPos = rgnend,
-                    size = rgnend - pos
-                })
+                -- Check if region should be excluded
+                if not (excludeTag and excludeTag ~= "" and name:sub(1, #excludeTag) == excludeTag) then
+                    table.insert(allRegions, {
+                        name = name,
+                        pos = pos,
+                        endPos = rgnend,
+                        size = rgnend - pos
+                    })
+                end
             end
         end
         i = i + 1
@@ -84,25 +95,45 @@ function FolderItems.getRegionsAtPosition(position, length)
 end
 
 -- Get track hierarchy
-function FolderItems.getTrackHierarchy(track)
+function FolderItems.getTrackHierarchy(track, excludeTag)
     local hierarchy = {parent = nil, current = nil, path = {}}
     
     if not track then return hierarchy end
     
     -- Get current track name
     local _, currentName = reaper.GetTrackName(track)
+    
+    -- Check if current track should be excluded
+    if excludeTag and excludeTag ~= "" and currentName:sub(1, #excludeTag) == excludeTag then
+        -- Skip this track but continue to parent
+        local parentTrack = reaper.GetParentTrack(track)
+        if parentTrack then
+            return FolderItems.getTrackHierarchy(parentTrack, excludeTag)
+        else
+            return hierarchy  -- No valid track found
+        end
+    end
+    
     hierarchy.current = currentName
     
     -- Build hierarchy path from current track to top parent
     local currentTrack = track
-    local trackPath = {currentName}
+    local trackPath = {}
+    
+    -- Add current track name if not excluded
+    if not (excludeTag and excludeTag ~= "" and currentName:sub(1, #excludeTag) == excludeTag) then
+        table.insert(trackPath, currentName)
+    end
     
     while currentTrack do
         local parentTrack = reaper.GetParentTrack(currentTrack)
         if parentTrack then
             local _, parentName = reaper.GetTrackName(parentTrack)
-            table.insert(trackPath, 1, parentName)  -- Insert at beginning
-            hierarchy.parent = parentName  -- The topmost parent
+            -- Only add if not excluded
+            if not (excludeTag and excludeTag ~= "" and parentName:sub(1, #excludeTag) == excludeTag) then
+                table.insert(trackPath, 1, parentName)  -- Insert at beginning
+                hierarchy.parent = parentName  -- The topmost non-excluded parent
+            end
         end
         currentTrack = parentTrack
     end
@@ -213,6 +244,11 @@ local function createFolderItemData(item, index)
         notes = notesStr
     end
     
+    -- Exclude items with [JOIN] note
+    if notes == "[JOIN]" then
+        return nil
+    end
+    
     -- Get track info
     local track = reaper.GetMediaItem_Track(item)
     local trackName = ""
@@ -230,17 +266,17 @@ local function createFolderItemData(item, index)
     local color = reaper.GetMediaItemInfo_Value(item, "I_CUSTOMCOLOR")
     local selected = reaper.IsMediaItemSelected(item)
     
-    -- Get regions at this position
-    local regions = FolderItems.getRegionsAtPosition(position, length)
+    -- Get regions at this position (with exclude tag from current options)
+    local regions = FolderItems.getRegionsAtPosition(position, length, currentOptions.excludeTag)
     
-    -- Get track hierarchy
-    local trackHierarchy = FolderItems.getTrackHierarchy(track)
+    -- Get track hierarchy (with exclude tag from current options)
+    local trackHierarchy = FolderItems.getTrackHierarchy(track, currentOptions.excludeTag)
     
     return {
         item = item,
         take = take,
         index = index,
-        name = name,
+        name = (name ~= "" and name) or notes,  -- Display name: prioritize take name, fallback to notes
         notes = notes,
         trackName = trackName,
         trackNumber = trackNumber,
@@ -270,20 +306,23 @@ function FolderItems.getList()
         if item and FolderItems.isEmptyItem(item) then
             local itemData = createFolderItemData(item, i)
             
-            -- Build context info string for display
-            local contextParts = {}
-            if itemData.regionParent then
-                table.insert(contextParts, "Region: " .. itemData.regionParent)
-                if itemData.regionChildren and #itemData.regionChildren > 0 then
-                    table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
+            -- Skip if item was excluded (e.g., [JOIN] note)
+            if itemData then
+                -- Build context info string for display
+                local contextParts = {}
+                if itemData.regionParent then
+                    table.insert(contextParts, "Region: " .. itemData.regionParent)
+                    if itemData.regionChildren and #itemData.regionChildren > 0 then
+                        table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
+                    end
                 end
+                if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
+                    table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
+                end
+                itemData.contextInfo = table.concat(contextParts, " | ")
+                
+                table.insert(items, itemData)
             end
-            if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
-                table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
-            end
-            itemData.contextInfo = table.concat(contextParts, " | ")
-            
-            table.insert(items, itemData)
         end
     end
     
@@ -301,20 +340,23 @@ function FolderItems.getListWithSelection(selectedOnly)
             if item and FolderItems.isEmptyItem(item) then
                 local itemData = createFolderItemData(item, i)
                 
-                -- Build context info string
-                local contextParts = {}
-                if itemData.regionParent then
-                    table.insert(contextParts, "Region: " .. itemData.regionParent)
-                    if itemData.regionChildren and #itemData.regionChildren > 0 then
-                        table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
+                -- Skip if item was excluded (e.g., [JOIN] note)
+                if itemData then
+                    -- Build context info string
+                    local contextParts = {}
+                    if itemData.regionParent then
+                        table.insert(contextParts, "Region: " .. itemData.regionParent)
+                        if itemData.regionChildren and #itemData.regionChildren > 0 then
+                            table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
+                        end
                     end
+                    if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
+                        table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
+                    end
+                    itemData.contextInfo = table.concat(contextParts, " | ")
+                    
+                    table.insert(items, itemData)
                 end
-                if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
-                    table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
-                end
-                itemData.contextInfo = table.concat(contextParts, " | ")
-                
-                table.insert(items, itemData)
             end
         end
         
@@ -326,6 +368,9 @@ end
 
 -- Update preview with generated names
 function FolderItems.updatePreview(itemList, pattern, options)
+    -- Store options for use in other functions
+    currentOptions = options or {}
+    
     -- First pass: generate base names with all transformations
     local nameCount = {}
     for i, item in ipairs(itemList) do
