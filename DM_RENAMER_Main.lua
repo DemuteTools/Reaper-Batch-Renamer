@@ -1419,7 +1419,7 @@ local function loop()
     if open then
         reaper.defer(loop)
     else
-        reaper.ImGui_DestroyContext(ctx)
+        -- Contexte nettoyé automatiquement par ReaImGui
     end
 end
 
