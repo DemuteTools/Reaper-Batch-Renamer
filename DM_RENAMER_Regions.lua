@@ -49,19 +49,42 @@ function Regions.getRegionList()
     return regions
 end
 
+-- Get regions at cursor position
+function Regions.getRegionsAtCursor()
+    local cursorPos = reaper.GetCursorPosition()
+    local regions = {}
+    local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
+
+    for i = 0, num_markers + num_regions - 1 do
+        local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
+
+        if isRegion then
+            -- Check if cursor is within region
+            if cursorPos >= pos and cursorPos <= rgnend then
+                local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+                if regionData then
+                    table.insert(regions, regionData)
+                end
+            end
+        end
+    end
+
+    return regions
+end
+
 -- Get regions in time selection
 function Regions.getRegionsInTimeSelection()
     local startTime, endTime = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
     if startTime == endTime then
         return {}  -- No time selection
     end
-    
+
     local regions = {}
     local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
-    
+
     for i = 0, num_markers + num_regions - 1 do
         local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
-        
+
         if isRegion then
             -- Check if region overlaps with time selection
             if pos < endTime and rgnend > startTime then
@@ -72,7 +95,7 @@ function Regions.getRegionsInTimeSelection()
             end
         end
     end
-    
+
     return regions
 end
 
@@ -522,11 +545,18 @@ function Regions.getList()
     return Regions.getRegionList()
 end
 
-function Regions.getListWithSelection(useTimeSelection)
-    if useTimeSelection then
+function Regions.getListWithSelection(selectedOnly)
+    if selectedOnly then
+        -- First try time selection
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         if end_time - start_time > 0 then
-            return Regions.getRegionsInTimeSelection(start_time, end_time)
+            return Regions.getRegionsInTimeSelection()
+        end
+
+        -- Then try cursor position
+        local regions = Regions.getRegionsAtCursor()
+        if #regions > 0 then
+            return regions
         end
     end
     return Regions.getRegionList()
@@ -626,6 +656,11 @@ function Regions.updatePreview(regionList, findText, replaceText, options)
         
         region.preview = newName
         region.changed = (newName ~= region.name)
+    end
+
+    -- Apply auto-increment if enabled
+    if options.autoIncrement then
+        Common.handleDuplicateNames(regionList, true)
     end
 end
 

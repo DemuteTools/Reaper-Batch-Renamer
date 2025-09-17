@@ -10,13 +10,15 @@ local Regions = dofile(script_path .. "DM_RENAMER_Regions.lua")
 local Markers = dofile(script_path .. "DM_RENAMER_Markers.lua")
 local Tracks = dofile(script_path .. "DM_RENAMER_Tracks.lua")
 local FolderItems = dofile(script_path .. "DM_RENAMER_FolderItems.lua")
+local All = dofile(script_path .. "DM_RENAMER_All.lua")
+local Presets = dofile(script_path .. "DM_RENAMER_Presets.lua")
 
 -- Initialize ReaImGui
 local ctx = reaper.ImGui_CreateContext('DM RENAMER')
 
 -- State management
 local state = {
-    currentTab = "Items",
+    currentTab = "Folder Items",
     findText = "",
     replaceText = "",
     currentList = {},
@@ -123,7 +125,19 @@ local state = {
     folderItemAutoIncrement = true,  -- Auto-increment duplicate names (default: true)
     folderItemExcludeTag = "",  -- Tag to exclude tracks/regions from naming
     -- Jump to position settings
-    jumpToPosition = true  -- Jump to selected item position (default: true)
+    jumpToPosition = true,  -- Jump to selected item position (default: true)
+    -- Auto-increment for all tabs
+    autoIncrement = true,
+    -- Sorting state
+    sortColumn = nil,
+    sortDirection = "asc",
+    -- Presets
+    presetList = {},
+    selectedPreset = nil,
+    presetName = "",
+    showPresetDialog = false,
+    -- Manual sorting state (for ReaImGui)
+    lastSortColumn = -1
 }
 
 -- Initialize
@@ -156,20 +170,25 @@ local function refreshCurrentList()
     
     -- Detect if there's a selection
     local hasSelection = false
-    if state.currentTab == "Items" then
+    if state.currentTab == "Media Items" then
         hasSelection = reaper.CountSelectedMediaItems(0) > 0
     elseif state.currentTab == "Tracks" then
         hasSelection = reaper.CountSelectedTracks(0) > 0
     elseif state.currentTab == "Regions" or state.currentTab == "Markers" then
-        -- Check for time selection
+        -- Check for time selection or cursor position selection
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
-        hasSelection = (end_time - start_time) > 0
+        local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, reaper.GetPlayPosition())
+        hasSelection = (end_time - start_time) > 0 or regionidx >= 0 or markeridx >= 0
+    elseif state.currentTab == "All" then
+        -- Check any type of selection
+        hasSelection = reaper.CountSelectedMediaItems(0) > 0 or
+                      reaper.CountSelectedTracks(0) > 0
     end
     
     state.useSelectedOnly = hasSelection
     
     local module = nil
-    if state.currentTab == "Items" then
+    if state.currentTab == "Media Items" then
         module = Items
     elseif state.currentTab == "Regions" then
         module = Regions
@@ -179,6 +198,8 @@ local function refreshCurrentList()
         module = Tracks
     elseif state.currentTab == "Folder Items" then
         module = FolderItems
+    elseif state.currentTab == "All" then
+        module = All
     end
     
     if module then
@@ -275,7 +296,7 @@ end
 local function hasSelectionChanged()
     local changed = false
     
-    if state.currentTab == "Items" then
+    if state.currentTab == "Media Items" then
         -- Build current selection set
         local currentItems = {}
         local itemCount = reaper.CountSelectedMediaItems(0)
@@ -387,7 +408,7 @@ end
 local function updatePreview()
     
     local module = nil
-    if state.currentTab == "Items" then
+    if state.currentTab == "Media Items" then
         module = Items
     elseif state.currentTab == "Regions" then
         module = Regions
@@ -397,6 +418,8 @@ local function updatePreview()
         module = Tracks
     elseif state.currentTab == "Folder Items" then
         module = FolderItems
+    elseif state.currentTab == "All" then
+        module = All
     end
     
     if module and module.updatePreview then
@@ -419,6 +442,34 @@ local function updatePreview()
                     prefix = state.prefix,
                     suffix = state.suffix
                 })
+            elseif state.currentTab == "All" then
+                -- Pass all options for All tab
+                module.updatePreview(state.currentList, state.findText, state.replaceText, {
+                    operation = state.operation,
+                    caseSensitive = state.caseSensitive,
+                    wholeWord = state.wholeWord,
+                    useLuaPatterns = state.useLuaPatterns,
+                    transformCase = state.transformCase,
+                    useTemplate = state.useTemplate,
+                    templateString = state.templateString,
+                    prefix = state.prefix,
+                    suffix = state.suffix,
+                    addNumbering = state.addNumbering,
+                    startNumber = state.startNumber,
+                    increment = state.increment,
+                    padding = state.padding,
+                    numberPosition = state.numberPosition,
+                    numberSeparator = state.numberSeparator,
+                    maxLength = state.maxLength,
+                    addEllipsis = state.addEllipsis,
+                    autoIncrement = state.autoIncrement,
+                    -- Folder items options
+                    folderItemPattern = state.folderItemPattern,
+                    separator = state.folderItemSeparator,
+                    customPattern = state.folderItemCustomPattern,
+                    folderItemAutoIncrement = state.folderItemAutoIncrement,
+                    excludeTag = state.folderItemExcludeTag
+                })
             else
                 -- Pass options to updatePreview for other tabs
                 module.updatePreview(state.currentList, state.findText, state.replaceText, {
@@ -439,7 +490,8 @@ local function updatePreview()
                     numberPosition = state.numberPosition,
                     numberSeparator = state.numberSeparator,
                     maxLength = state.maxLength,
-                    addEllipsis = state.addEllipsis
+                    addEllipsis = state.addEllipsis,
+                    autoIncrement = state.autoIncrement
                 })
             end
         end)
@@ -478,7 +530,7 @@ local function applyChanges()
     end
     
     local module = nil
-    if state.currentTab == "Items" then
+    if state.currentTab == "Media Items" then
         module = Items
     elseif state.currentTab == "Regions" then
         module = Regions
@@ -488,6 +540,8 @@ local function applyChanges()
         module = Tracks
     elseif state.currentTab == "Folder Items" then
         module = FolderItems
+    elseif state.currentTab == "All" then
+        module = All
     end
     
     if module and module.applyChanges then
@@ -518,7 +572,7 @@ local function applyDirectEdit(index, newName)
     
     -- Get the appropriate module
     local module = nil
-    if state.currentTab == "Items" then
+    if state.currentTab == "Media Items" then
         module = Items
     elseif state.currentTab == "Regions" then
         module = Regions
@@ -528,6 +582,8 @@ local function applyDirectEdit(index, newName)
         module = Tracks
     elseif state.currentTab == "Folder Items" then
         module = FolderItems
+    elseif state.currentTab == "All" then
+        module = All
     end
     
     if module and module.applyChanges then
@@ -730,46 +786,9 @@ local function loop()
             reaper.ImGui_EndMenuBar(ctx)
         end
         
-        -- Tabs
+        -- Tabs (new order: Folder Items first, then All, then the rest)
         if reaper.ImGui_BeginTabBar(ctx, "MainTabs") then
-            if reaper.ImGui_BeginTabItem(ctx, "Items") then
-                if state.currentTab ~= "Items" then
-                    state.currentTab = "Items"
-                    state.needsRefresh = true
-                    state.needsPreview = true
-                    state.lastSelectedItemPointers = {}  -- Reset selection tracking
-                end
-                reaper.ImGui_EndTabItem(ctx)
-            end
-            
-            if reaper.ImGui_BeginTabItem(ctx, "Regions") then
-                if state.currentTab ~= "Regions" then
-                    state.currentTab = "Regions"
-                    state.needsRefresh = true
-                    state.needsPreview = true
-                end
-                reaper.ImGui_EndTabItem(ctx)
-            end
-            
-            if reaper.ImGui_BeginTabItem(ctx, "Markers") then
-                if state.currentTab ~= "Markers" then
-                    state.currentTab = "Markers"
-                    state.needsRefresh = true
-                    state.needsPreview = true
-                end
-                reaper.ImGui_EndTabItem(ctx)
-            end
-            
-            if reaper.ImGui_BeginTabItem(ctx, "Tracks") then
-                if state.currentTab ~= "Tracks" then
-                    state.currentTab = "Tracks"
-                    state.needsRefresh = true
-                    state.needsPreview = true
-                    state.lastSelectedTrackPointers = {}  -- Reset selection tracking
-                end
-                reaper.ImGui_EndTabItem(ctx)
-            end
-            
+            -- 1. Folder Items (first and default)
             if reaper.ImGui_BeginTabItem(ctx, "Folder Items") then
                 if state.currentTab ~= "Folder Items" then
                     state.currentTab = "Folder Items"
@@ -779,7 +798,59 @@ local function loop()
                 end
                 reaper.ImGui_EndTabItem(ctx)
             end
-            
+
+            -- 2. All (new tab)
+            if reaper.ImGui_BeginTabItem(ctx, "All") then
+                if state.currentTab ~= "All" then
+                    state.currentTab = "All"
+                    state.needsRefresh = true
+                    state.needsPreview = true
+                end
+                reaper.ImGui_EndTabItem(ctx)
+            end
+
+            -- 3. Media Items (renamed from Items)
+            if reaper.ImGui_BeginTabItem(ctx, "Media Items") then
+                if state.currentTab ~= "Media Items" then
+                    state.currentTab = "Media Items"
+                    state.needsRefresh = true
+                    state.needsPreview = true
+                    state.lastSelectedItemPointers = {}  -- Reset selection tracking
+                end
+                reaper.ImGui_EndTabItem(ctx)
+            end
+
+            -- 4. Regions
+            if reaper.ImGui_BeginTabItem(ctx, "Regions") then
+                if state.currentTab ~= "Regions" then
+                    state.currentTab = "Regions"
+                    state.needsRefresh = true
+                    state.needsPreview = true
+                end
+                reaper.ImGui_EndTabItem(ctx)
+            end
+
+            -- 5. Markers
+            if reaper.ImGui_BeginTabItem(ctx, "Markers") then
+                if state.currentTab ~= "Markers" then
+                    state.currentTab = "Markers"
+                    state.needsRefresh = true
+                    state.needsPreview = true
+                end
+                reaper.ImGui_EndTabItem(ctx)
+            end
+
+            -- 6. Tracks
+            if reaper.ImGui_BeginTabItem(ctx, "Tracks") then
+                if state.currentTab ~= "Tracks" then
+                    state.currentTab = "Tracks"
+                    state.needsRefresh = true
+                    state.needsPreview = true
+                    state.lastSelectedTrackPointers = {}  -- Reset selection tracking
+                end
+                reaper.ImGui_EndTabItem(ctx)
+            end
+
             reaper.ImGui_EndTabBar(ctx)
         end
         
@@ -875,16 +946,7 @@ local function loop()
                     reaper.ImGui_Text(ctx, "           {track}, {track_parent}, {position}")
                 end
                 
-                -- Auto-increment option
-                reaper.ImGui_Text(ctx, "Auto-increment:")
-                reaper.ImGui_SameLine(ctx)
-                reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-                local autoIncChanged, autoInc = reaper.ImGui_Checkbox(ctx, " ", state.folderItemAutoIncrement)
-                if autoIncChanged then
-                    state.folderItemAutoIncrement = autoInc
-                    state.needsPreview = true
-                    saveFolderItemsSettings()
-                end
+                -- Auto-increment option moved to general section
                 
                 -- Exclude tag option
                 reaper.ImGui_Text(ctx, "Exclude tag:")
@@ -939,10 +1001,76 @@ local function loop()
                 if reaper.ImGui_Button(ctx, "Refresh List") then
                     state.needsRefresh = true
                 end
-                
+
+                reaper.ImGui_Separator(ctx)
+
+                -- PRESETS SECTION
+                reaper.ImGui_Text(ctx, "PRESETS")
+                reaper.ImGui_Separator(ctx)
+
+                -- Load preset dropdown
+                reaper.ImGui_Text(ctx, "Load Preset:")
+                reaper.ImGui_SameLine(ctx)
+                reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+                reaper.ImGui_SetNextItemWidth(ctx, 200)
+
+                local presetNames = Presets.list()
+                table.insert(presetNames, 1, "-- None --")
+
+                if reaper.ImGui_BeginCombo(ctx, "##LoadPreset", state.selectedPreset or "-- None --") then
+                    for _, name in ipairs(presetNames) do
+                        if reaper.ImGui_Selectable(ctx, name, name == state.selectedPreset) then
+                            if name ~= "-- None --" then
+                                local preset = Presets.load(name)
+                                if preset then
+                                    -- Apply preset to state
+                                    for k, v in pairs(preset) do
+                                        state[k] = v
+                                    end
+                                    state.selectedPreset = name
+                                    state.needsPreview = true
+                                end
+                            else
+                                state.selectedPreset = nil
+                            end
+                        end
+                    end
+                    reaper.ImGui_EndCombo(ctx)
+                end
+
+                -- Save preset
+                reaper.ImGui_Text(ctx, "Save as:")
+                reaper.ImGui_SameLine(ctx)
+                reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+                reaper.ImGui_SetNextItemWidth(ctx, 150)
+                local nameChanged, newName = reaper.ImGui_InputText(ctx, "##PresetName", state.presetName)
+                if nameChanged then
+                    state.presetName = newName
+                end
+
+                reaper.ImGui_SameLine(ctx)
+                if reaper.ImGui_Button(ctx, "Save") then
+                    if state.presetName ~= "" then
+                        if Presets.save(state.presetName, state) then
+                            state.selectedPreset = state.presetName
+                            state.presetName = ""
+                        end
+                    end
+                end
+
+                -- Delete preset
+                if state.selectedPreset and state.selectedPreset ~= "-- None --" then
+                    reaper.ImGui_SameLine(ctx)
+                    if reaper.ImGui_Button(ctx, "Delete") then
+                        if Presets.delete(state.selectedPreset) then
+                            state.selectedPreset = nil
+                        end
+                    end
+                end
+
                 reaper.ImGui_Separator(ctx)
             end
-            
+
             -- TRANSFORMATIONS SECTION (for ALL tabs including Folder Items)
             reaper.ImGui_Text(ctx, "TRANSFORMATIONS")
             reaper.ImGui_Separator(ctx)
@@ -1146,7 +1274,24 @@ local function loop()
             end
             
             reaper.ImGui_Separator(ctx)
-            
+
+            -- Auto-increment option (for all tabs)
+            reaper.ImGui_Text(ctx, "Auto-increment:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            local autoIncChanged, autoInc = reaper.ImGui_Checkbox(ctx, "Add number to duplicates", state.autoIncrement)
+            if autoIncChanged then
+                state.autoIncrement = autoInc
+                state.needsPreview = true
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Automatically add _1, _2, etc. to duplicate names")
+                reaper.ImGui_EndTooltip(ctx)
+            end
+
+            reaper.ImGui_Separator(ctx)
+
             -- Options checkboxes
             reaper.ImGui_Text(ctx, "Options:")
             reaper.ImGui_SameLine(ctx)
@@ -1156,12 +1301,22 @@ local function loop()
                 state.caseSensitive = newCase
                 state.needsPreview = true
             end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Match exact case (uppercase/lowercase) when searching")
+                reaper.ImGui_EndTooltip(ctx)
+            end
             
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
             local wholeChanged, newWhole = reaper.ImGui_Checkbox(ctx, "Whole Word", state.wholeWord)
             if wholeChanged then
                 state.wholeWord = newWhole
                 state.needsPreview = true
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Only match complete words, not partial matches")
+                reaper.ImGui_EndTooltip(ctx)
             end
             
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
@@ -1176,17 +1331,32 @@ local function loop()
                 end
                 state.needsPreview = true
             end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Enable Lua regular expressions for advanced pattern matching")
+                reaper.ImGui_EndTooltip(ctx)
+            end
             
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
             local autoChanged, newAuto = reaper.ImGui_Checkbox(ctx, "Auto-select changed", state.autoSelectChanged)
             if autoChanged then
                 state.autoSelectChanged = newAuto
             end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Automatically check items that have changes")
+                reaper.ImGui_EndTooltip(ctx)
+            end
             
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
             local jumpChanged, newJump = reaper.ImGui_Checkbox(ctx, "Jump to position on select", state.jumpToPosition)
             if jumpChanged then
                 state.jumpToPosition = newJump
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Move view to selected item position in timeline")
+                reaper.ImGui_EndTooltip(ctx)
             end
             
             -- Show pattern error if invalid
@@ -1257,31 +1427,144 @@ local function loop()
         local rightColumnWidth = windowWidth - leftColumnWidth - 10
         if reaper.ImGui_BeginChild(ctx, "RightColumn", rightColumnWidth, -30, reaper.ImGui_WindowFlags_None()) then
             -- Table display with full height
-            local tableFlags = reaper.ImGui_TableFlags_Borders() | 
-                               reaper.ImGui_TableFlags_RowBg() | 
+            local tableFlags = reaper.ImGui_TableFlags_Borders() |
+                               reaper.ImGui_TableFlags_RowBg() |
                                reaper.ImGui_TableFlags_Resizable() |
                                reaper.ImGui_TableFlags_ScrollY() |
+                               reaper.ImGui_TableFlags_ScrollX() |
+                               reaper.ImGui_TableFlags_Sortable() |
+                               reaper.ImGui_TableFlags_SortMulti() |
                                reaper.ImGui_TableFlags_SizingStretchSame()
             
-            -- Adapt columns for Folder Items
-            local columnCount = state.currentTab == "Folder Items" and 4 or 3
+            -- Adapt columns for different tabs
+            local columnCount = 3  -- Default
+            if state.currentTab == "Folder Items" then
+                columnCount = 4
+            elseif state.currentTab == "All" then
+                columnCount = 5  -- Check, Type, Current, Target, Context
+            end
             
             if reaper.ImGui_BeginTable(ctx, "ItemTable", columnCount, tableFlags, 0, 0) then
-                -- Setup columns
-                reaper.ImGui_TableSetupColumn(ctx, "##Check", reaper.ImGui_TableColumnFlags_WidthFixed(), 30)
-                
-                if state.currentTab == "Folder Items" then
-                    reaper.ImGui_TableSetupColumn(ctx, "Current Name", reaper.ImGui_TableColumnFlags_WidthStretch())
-                    reaper.ImGui_TableSetupColumn(ctx, "Target Name", reaper.ImGui_TableColumnFlags_WidthStretch())
-                    reaper.ImGui_TableSetupColumn(ctx, "Context (Region/Track)", reaper.ImGui_TableColumnFlags_WidthStretch())
+                -- Setup columns based on tab
+                if state.currentTab == "All" then
+                    reaper.ImGui_TableSetupColumn(ctx, "##Check", reaper.ImGui_TableColumnFlags_NoSort() | reaper.ImGui_TableColumnFlags_WidthFixed(), 30)
+                    reaper.ImGui_TableSetupColumn(ctx, "Type", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthFixed(), 100)
+                    reaper.ImGui_TableSetupColumn(ctx, "Current Name", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
+                    reaper.ImGui_TableSetupColumn(ctx, "Target Name", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
+                    reaper.ImGui_TableSetupColumn(ctx, "Context", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthFixed(), 200)
+                elseif state.currentTab == "Folder Items" then
+                    reaper.ImGui_TableSetupColumn(ctx, "##Check", reaper.ImGui_TableColumnFlags_NoSort() | reaper.ImGui_TableColumnFlags_WidthFixed(), 30)
+                    reaper.ImGui_TableSetupColumn(ctx, "Current Name", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
+                    reaper.ImGui_TableSetupColumn(ctx, "Target Name", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
+                    reaper.ImGui_TableSetupColumn(ctx, "Context (Region/Track)", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
                 else
-                    reaper.ImGui_TableSetupColumn(ctx, "Current Name", reaper.ImGui_TableColumnFlags_WidthStretch())
-                    reaper.ImGui_TableSetupColumn(ctx, "Target Name", reaper.ImGui_TableColumnFlags_WidthStretch())
+                    reaper.ImGui_TableSetupColumn(ctx, "##Check", reaper.ImGui_TableColumnFlags_NoSort() | reaper.ImGui_TableColumnFlags_WidthFixed(), 30)
+                    reaper.ImGui_TableSetupColumn(ctx, "Current Name", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
+                    reaper.ImGui_TableSetupColumn(ctx, "Target Name", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
                 end
                 
                 reaper.ImGui_TableSetupScrollFreeze(ctx, 0, 1) -- Freeze header row
-                reaper.ImGui_TableHeadersRow(ctx)
-                
+
+                -- Manual column sorting implementation for ReaImGui
+                -- Create custom header row with clickable headers
+                if reaper.ImGui_TableNextRow(ctx, reaper.ImGui_TableRowFlags_Headers()) then
+                    for col = 0, columnCount - 1 do
+                        reaper.ImGui_TableSetColumnIndex(ctx, col)
+
+                        local header_text = ""
+                        local sortable = col > 0  -- Don't sort checkbox column
+
+                        -- Get header text based on column and tab
+                        if state.currentTab == "All" then
+                            if col == 0 then header_text = ""
+                            elseif col == 1 then header_text = "Type"
+                            elseif col == 2 then header_text = "Current Name"
+                            elseif col == 3 then header_text = "Target Name"
+                            elseif col == 4 then header_text = "Context"
+                            end
+                        elseif state.currentTab == "Folder Items" then
+                            if col == 0 then header_text = ""
+                            elseif col == 1 then header_text = "Current Name"
+                            elseif col == 2 then header_text = "Target Name"
+                            elseif col == 3 then header_text = "Context"
+                            end
+                        else
+                            if col == 0 then header_text = ""
+                            elseif col == 1 then header_text = "Current Name"
+                            elseif col == 2 then header_text = "Target Name"
+                            end
+                        end
+
+                        if sortable and header_text ~= "" then
+                            -- Add sort indicator
+                            local displayText = header_text
+                            if state.sortColumn == col then
+                                displayText = displayText .. (state.sortDirection == "asc" and " ▲" or " ▼")
+                            end
+
+                            -- Make header clickable
+                            if reaper.ImGui_Selectable(ctx, displayText .. "##h" .. col, false, reaper.ImGui_SelectableFlags_None()) then
+                                -- Toggle sort
+                                if state.sortColumn == col then
+                                    state.sortDirection = state.sortDirection == "asc" and "desc" or "asc"
+                                else
+                                    state.sortColumn = col
+                                    state.sortDirection = "asc"
+                                end
+
+                                -- Perform sort immediately
+                                table.sort(state.currentList, function(a, b)
+                                    local aVal, bVal
+
+                                    if state.currentTab == "All" then
+                                        if state.sortColumn == 1 then -- Type column
+                                            aVal = a.type or ""
+                                            bVal = b.type or ""
+                                        elseif state.sortColumn == 2 then -- Current name
+                                            aVal = a.name or a.notes or ""
+                                            bVal = b.name or b.notes or ""
+                                        elseif state.sortColumn == 3 then -- Target name
+                                            aVal = a.preview or ""
+                                            bVal = b.preview or ""
+                                        elseif state.sortColumn == 4 then -- Context
+                                            aVal = a.contextInfo or ""
+                                            bVal = b.contextInfo or ""
+                                        end
+                                    else
+                                        if state.sortColumn == 1 then -- Current name
+                                            aVal = a.name or a.notes or ""
+                                            bVal = b.name or b.notes or ""
+                                        elseif state.sortColumn == 2 then -- Target name
+                                            aVal = a.preview or ""
+                                            bVal = b.preview or ""
+                                        elseif state.sortColumn == 3 then -- Context
+                                            aVal = a.contextInfo or ""
+                                            bVal = b.contextInfo or ""
+                                        end
+                                    end
+
+                                    -- Handle nil values
+                                    if not aVal then aVal = "" end
+                                    if not bVal then bVal = "" end
+
+                                    -- Convert to string for comparison
+                                    aVal = tostring(aVal):lower()
+                                    bVal = tostring(bVal):lower()
+
+                                    if state.sortDirection == "asc" then
+                                        return aVal < bVal
+                                    else
+                                        return aVal > bVal
+                                    end
+                                end)
+                            end
+                        elseif col == 0 then
+                            -- Checkbox header - empty
+                            reaper.ImGui_Text(ctx, "")
+                        end
+                    end
+                end
+
                 for i, item in ipairs(state.currentList) do
                     reaper.ImGui_TableNextRow(ctx)
                     
@@ -1292,8 +1575,27 @@ local function loop()
                         item.checked = newChecked
                     end
                     
-                    -- Column 2: Current Name/Notes (depends on tab)
-                    reaper.ImGui_TableSetColumnIndex(ctx, 1)
+                    -- Column 2: Type (only for All tab)
+                    if state.currentTab == "All" then
+                        reaper.ImGui_TableSetColumnIndex(ctx, 1)
+                        local typeColor = 0xFFFFFFFF
+                        if item.type == "Media Item" then
+                            typeColor = 0x00FF00FF
+                        elseif item.type == "Folder Item" then
+                            typeColor = 0xFF00FFFF
+                        elseif item.type == "Region" then
+                            typeColor = 0x00FFFFFF
+                        elseif item.type == "Marker" then
+                            typeColor = 0xFFFF00FF
+                        elseif item.type == "Track" then
+                            typeColor = 0xFF8800FF
+                        end
+                        reaper.ImGui_TextColored(ctx, typeColor, item.type or "")
+                    end
+
+                    -- Column 2 or 3: Current Name/Notes (depends on tab)
+                    local nameColumnIndex = state.currentTab == "All" and 2 or 1
+                    reaper.ImGui_TableSetColumnIndex(ctx, nameColumnIndex)
                     if state.currentTab == "Folder Items" then
                         -- For Folder Items, show editable notes
                         if state.editingIndex == i and state.editingColumn == "current" then
@@ -1420,8 +1722,9 @@ local function loop()
                         end
                     end
                     
-                    -- Column 3: Target Name/Preview or Generated Name for Folder Items
-                    reaper.ImGui_TableSetColumnIndex(ctx, 2)
+                    -- Column 3 or 4: Target Name/Preview or Generated Name for Folder Items
+                    local targetColumnIndex = state.currentTab == "All" and 3 or 2
+                    reaper.ImGui_TableSetColumnIndex(ctx, targetColumnIndex)
                     if state.editingIndex ~= i then
                         local displayText = item.preview or item.name or ""
                         local textColor = 0xAAAAAAFF  -- Default gray
@@ -1440,9 +1743,12 @@ local function loop()
                         reaper.ImGui_TextColored(ctx, textColor, displayText)
                     end
                     
-                    -- Column 4: Context info (only for Folder Items)
+                    -- Column 4 or 5: Context info
                     if state.currentTab == "Folder Items" then
                         reaper.ImGui_TableSetColumnIndex(ctx, 3)
+                        reaper.ImGui_Text(ctx, item.contextInfo or "")
+                    elseif state.currentTab == "All" then
+                        reaper.ImGui_TableSetColumnIndex(ctx, 4)
                         reaper.ImGui_Text(ctx, item.contextInfo or "")
                     end
                 end

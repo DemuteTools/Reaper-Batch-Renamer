@@ -451,4 +451,78 @@ function Common.parseTime(timeStr)
     return tonumber(timeStr) or 0
 end
 
+-- Handle duplicate names with auto-increment
+function Common.handleDuplicateNames(list, autoIncrement)
+    if not autoIncrement then return end
+
+    -- Group items by preview name
+    local nameGroups = {}
+    for _, item in ipairs(list) do
+        if item.preview and item.preview ~= "" and item.changed then
+            if not nameGroups[item.preview] then
+                nameGroups[item.preview] = {}
+            end
+            table.insert(nameGroups[item.preview], item)
+        end
+    end
+
+    -- Add increment to duplicates
+    for name, items in pairs(nameGroups) do
+        if #items > 1 then
+            -- Sort items by position/index for consistent numbering
+            table.sort(items, function(a, b)
+                if a.position and b.position then
+                    return a.position < b.position
+                elseif a.startPos and b.startPos then  -- For regions
+                    return a.startPos < b.startPos
+                elseif a.index and b.index then
+                    return a.index < b.index
+                elseif a.trackNumber and b.trackNumber then  -- For tracks
+                    return a.trackNumber < b.trackNumber
+                else
+                    return false
+                end
+            end)
+
+            -- Add suffix to duplicates (keep first one unchanged)
+            for i = 2, #items do
+                items[i].preview = name .. "_" .. i
+            end
+        end
+    end
+end
+
+-- Apply transformation (wrapper for consistent API across modules)
+function Common.applyTransformation(str, findText, replaceText, options)
+    local result = str
+
+    -- Apply find/replace
+    if findText and findText ~= "" then
+        result = Common.replacePattern(result, findText, replaceText,
+                                      options.caseSensitive,
+                                      options.wholeWord,
+                                      options.useLuaPatterns)
+    end
+
+    -- Apply operations
+    if options.operation and options.operation ~= "none" then
+        result = Common.applyOperation(result, options.operation, options)
+    end
+
+    -- Apply case transformation
+    if options.transformCase and options.transformCase ~= "none" then
+        result = Common.applyCase(result, options.transformCase)
+    end
+
+    -- Apply prefix/suffix
+    if options.prefix and options.prefix ~= "" then
+        result = options.prefix .. result
+    end
+    if options.suffix and options.suffix ~= "" then
+        result = result .. options.suffix
+    end
+
+    return result
+end
+
 return Common

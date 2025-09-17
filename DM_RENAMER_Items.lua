@@ -6,6 +6,7 @@ local Items = {}
 -- Load common functions
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
 local Common = dofile(script_path .. "DM_RENAMER_Common.lua")
+local FolderItems = dofile(script_path .. "DM_RENAMER_FolderItems.lua")
 
 -- Structure for item data
 local function createItemData(item, index)
@@ -66,7 +67,10 @@ function Items.getItemList(selectedOnly)
         local item = reaper.GetMediaItem(0, i)
         if item then
             if not selectedOnly or reaper.IsMediaItemSelected(item) then
-                table.insert(items, createItemData(item, i))
+                -- Exclude folder items (empty items without audio or MIDI)
+                if not FolderItems.isEmptyItem(item) then
+                    table.insert(items, createItemData(item, i))
+                end
             end
         end
     end
@@ -86,7 +90,10 @@ function Items.getItemsFromSelectedTracks()
             for i = 0, itemCount - 1 do
                 local item = reaper.GetTrackMediaItem(track, i)
                 if item then
-                    table.insert(items, createItemData(item, #items))
+                    -- Exclude folder items (empty items without audio or MIDI)
+                    if not FolderItems.isEmptyItem(item) then
+                        table.insert(items, createItemData(item, #items))
+                    end
                 end
             end
         end

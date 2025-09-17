@@ -47,19 +47,43 @@ function Markers.getMarkerList()
     return markers
 end
 
+-- Get markers at cursor position
+function Markers.getMarkersAtCursor()
+    local cursorPos = reaper.GetCursorPosition()
+    local tolerance = 0.1  -- 100ms tolerance for marker selection
+    local markers = {}
+    local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
+
+    for i = 0, num_markers + num_regions - 1 do
+        local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
+
+        if not isRegion then
+            -- Check if cursor is near marker (with tolerance)
+            if math.abs(cursorPos - pos) <= tolerance then
+                local markerData = createMarkerData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+                if markerData then
+                    table.insert(markers, markerData)
+                end
+            end
+        end
+    end
+
+    return markers
+end
+
 -- Get markers in time selection
 function Markers.getMarkersInTimeSelection()
     local startTime, endTime = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
     if startTime == endTime then
         return {}  -- No time selection
     end
-    
+
     local markers = {}
     local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
-    
+
     for i = 0, num_markers + num_regions - 1 do
         local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
-        
+
         if not isRegion then
             -- Check if marker is within time selection
             if pos >= startTime and pos <= endTime then
@@ -70,7 +94,7 @@ function Markers.getMarkersInTimeSelection()
             end
         end
     end
-    
+
     return markers
 end
 
@@ -624,11 +648,18 @@ function Markers.getList()
     return Markers.getMarkerList()
 end
 
-function Markers.getListWithSelection(useTimeSelection)
-    if useTimeSelection then
+function Markers.getListWithSelection(selectedOnly)
+    if selectedOnly then
+        -- First try time selection
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         if end_time - start_time > 0 then
-            return Markers.getMarkersInTimeSelection(start_time, end_time)
+            return Markers.getMarkersInTimeSelection()
+        end
+
+        -- Then try cursor position
+        local markers = Markers.getMarkersAtCursor()
+        if #markers > 0 then
+            return markers
         end
     end
     return Markers.getMarkerList()
@@ -726,6 +757,11 @@ function Markers.updatePreview(markerList, findText, replaceText, options)
         
         marker.preview = newName
         marker.changed = (newName ~= marker.name)
+    end
+
+    -- Apply auto-increment if enabled
+    if options.autoIncrement then
+        Common.handleDuplicateNames(markerList, true)
     end
 end
 
