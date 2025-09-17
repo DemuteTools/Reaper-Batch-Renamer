@@ -175,14 +175,15 @@ local function refreshCurrentList()
     elseif state.currentTab == "Tracks" then
         hasSelection = reaper.CountSelectedTracks(0) > 0
     elseif state.currentTab == "Regions" or state.currentTab == "Markers" then
-        -- Check for time selection or cursor position selection
+        -- Check for time selection only (regions/markers don't have selection concept in Reaper)
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
-        local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, reaper.GetPlayPosition())
-        hasSelection = (end_time - start_time) > 0 or regionidx >= 0 or markeridx >= 0
+        hasSelection = (end_time - start_time) > 0
     elseif state.currentTab == "All" then
-        -- Check any type of selection
+        -- Check any type of selection (items, tracks, or time selection)
+        local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         hasSelection = reaper.CountSelectedMediaItems(0) > 0 or
-                      reaper.CountSelectedTracks(0) > 0
+                      reaper.CountSelectedTracks(0) > 0 or
+                      (end_time - start_time) > 0
     end
     
     state.useSelectedOnly = hasSelection
@@ -618,15 +619,27 @@ local function jumpToItemPosition(index)
     
     local position = nil
     
-    if state.currentTab == "Items" or state.currentTab == "Folder Items" then
+    if state.currentTab == "Media Items" or state.currentTab == "Folder Items" then
         position = item.position
     elseif state.currentTab == "Regions" then
         position = item.startPos
     elseif state.currentTab == "Markers" then
         position = item.position
+    elseif state.currentTab == "All" then
+        -- Handle different types in All tab
+        if item.type == "Media Item" or item.type == "Folder Item" then
+            position = item.position
+        elseif item.type == "Region" then
+            position = item.startPos
+        elseif item.type == "Marker" then
+            position = item.position
+        elseif item.type == "Track" then
+            -- Tracks don't have position
+            return
+        end
     elseif state.currentTab == "Tracks" then
-        -- Tracks don't have position, maybe find first item in track?
-        return  -- Skip for tracks
+        -- Tracks don't have position
+        return
     end
     
     if position then

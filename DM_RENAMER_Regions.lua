@@ -519,26 +519,6 @@ function Regions.rippleEditRegions(regions, timeDelta, fromPosition)
     return editedCount
 end
 
--- Get regions in time selection
-function Regions.getRegionsInTimeSelection(start_time, end_time)
-    local regions = {}
-    local retval, num_markers, num_regions = reaper.CountProjectMarkers(0)
-    
-    for i = 0, num_markers + num_regions - 1 do
-        local retval, isrgn, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
-        if isrgn then
-            -- Check if region overlaps with time selection
-            if pos < end_time and rgnend > start_time then
-                local regionData = createRegionData(i, isrgn, pos, rgnend, name, markrgnindexnumber, color)
-                if regionData then
-                    table.insert(regions, regionData)
-                end
-            end
-        end
-    end
-    
-    return regions
-end
 
 -- Wrapper functions for main interface compatibility
 function Regions.getList()

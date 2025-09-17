@@ -622,26 +622,6 @@ function Markers.renumberMarkers(markers, startNumber, increment, prefix, suffix
     return renumberedCount
 end
 
--- Get markers in time selection
-function Markers.getMarkersInTimeSelection(start_time, end_time)
-    local markers = {}
-    local retval, num_markers, num_regions = reaper.CountProjectMarkers(0)
-    
-    for i = 0, num_markers + num_regions - 1 do
-        local retval, isrgn, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
-        if not isrgn then  -- It's a marker, not a region
-            -- Check if marker is within time selection
-            if pos >= start_time and pos <= end_time then
-                local markerData = createMarkerData(i, isrgn, pos, rgnend, name, markrgnindexnumber, color)
-                if markerData then
-                    table.insert(markers, markerData)
-                end
-            end
-        end
-    end
-    
-    return markers
-end
 
 -- Wrapper functions for main interface compatibility
 function Markers.getList()
