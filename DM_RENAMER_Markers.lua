@@ -98,6 +98,35 @@ function Markers.getMarkersInTimeSelection()
     return markers
 end
 
+-- Get truly selected markers (using ExtState tracking)
+function Markers.getSelectedMarkersList()
+    local markers = {}
+    local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
+    
+    -- Check ExtState for selected markers
+    local selectedString = reaper.GetExtState("DM_RENAMER", "SelectedMarkers") or ""
+    local selectedIndices = {}
+    
+    -- Parse comma-separated indices
+    for index in string.gmatch(selectedString, "([^,]+)") do
+        selectedIndices[tonumber(index)] = true
+    end
+    
+    -- Collect selected markers
+    for i = 0, num_markers + num_regions - 1 do
+        local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
+        
+        if not isRegion and selectedIndices[markrgnindexnumber] then
+            local markerData = createMarkerData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+            if markerData then
+                table.insert(markers, markerData)
+            end
+        end
+    end
+    
+    return markers
+end
+
 -- Filter markers by search pattern
 function Markers.filterMarkers(markers, searchPattern, options)
     if not searchPattern or searchPattern == "" then
@@ -630,16 +659,16 @@ end
 
 function Markers.getListWithSelection(selectedOnly)
     if selectedOnly then
-        -- First try time selection
+        -- Check for selected markers via ExtState
+        local selectedMarkers = Markers.getSelectedMarkersList()
+        if #selectedMarkers > 0 then
+            return selectedMarkers
+        end
+        
+        -- Fallback to time selection only
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         if end_time - start_time > 0 then
             return Markers.getMarkersInTimeSelection()
-        end
-
-        -- Then try cursor position
-        local markers = Markers.getMarkersAtCursor()
-        if #markers > 0 then
-            return markers
         end
     end
     return Markers.getMarkerList()

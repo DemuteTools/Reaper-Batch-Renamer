@@ -99,44 +99,85 @@ function Regions.getRegionsInTimeSelection()
     return regions
 end
 
--- Get selected regions (using marquee selection or other selection methods)
-function Regions.getSelectedRegions()
+-- Get truly selected regions (using ExtState tracking and SWS if available)
+function Regions.getSelectedRegionsList()
     local regions = {}
     local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
     
-    -- Get current selection via GetLastMarkerAndCurRegion
-    local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, reaper.GetCursorPosition())
+    -- Method 1: Check ExtState for selected regions (set by our tracking)
+    local selectedString = reaper.GetExtState("DM_RENAMER", "SelectedRegions") or ""
+    local selectedIndices = {}
     
-    -- Also check if there's a selected region via the region manager
+    -- Parse comma-separated indices
+    for index in string.gmatch(selectedString, "([^,]+)") do
+        selectedIndices[tonumber(index)] = true
+    end
+    
+    -- Method 2: If SWS is available, check Region Manager selection
+    local hasSWS = reaper.APIExists("BR_GetMouseCursorContext")
+    if hasSWS and #selectedIndices == 0 then
+        -- Try to get selection from Region Manager if open
+        local hwnd = reaper.JS_Window_Find and reaper.JS_Window_Find("Region/Marker Manager", true)
+        if hwnd then
+            -- Region Manager is open, could potentially get selection from it
+            -- This would require JS_ReaScriptAPI extension
+        end
+    end
+    
+    -- Collect selected regions
     for i = 0, num_markers + num_regions - 1 do
         local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
         
-        if isRegion then
-            -- Check if this region is selected (compare with last selected region)
-            local isSelected = false
-            
-            -- Method 1: Check if it's the last touched region
-            if regionidx >= 0 and markrgnindexnumber == regionidx then
-                isSelected = true
-            end
-            
-            -- Method 2: Check if cursor is within region (as fallback)
-            local cursorPos = reaper.GetCursorPosition()
-            if not isSelected and cursorPos >= pos and cursorPos < rgnend then
-                -- Additional check: see if this region was clicked
-                isSelected = true
-            end
-            
-            if isSelected then
-                local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
-                if regionData then
-                    table.insert(regions, regionData)
-                end
+        if isRegion and selectedIndices[markrgnindexnumber] then
+            local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+            if regionData then
+                table.insert(regions, regionData)
             end
         end
     end
     
     return regions
+end
+
+-- Track region selection (call this when regions are clicked)
+function Regions.trackSelection()
+    -- This function will be called from main loop to track selection changes
+    if not reaper.APIExists("JS_Window_Find") then
+        return  -- Need JS extension for full tracking
+    end
+    
+    -- Get last touched region
+    local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, reaper.GetCursorPosition())
+    
+    -- Store in ExtState
+    if regionidx >= 0 then
+        -- Check if Shift is held for multi-selection
+        local shiftState = reaper.JS_Mouse_GetState and reaper.JS_Mouse_GetState(0x0004) > 0
+        
+        if shiftState then
+            -- Add to selection
+            local current = reaper.GetExtState("DM_RENAMER", "SelectedRegions") or ""
+            if current == "" then
+                current = tostring(regionidx)
+            else
+                -- Check if not already selected
+                local found = false
+                for index in string.gmatch(current, "([^,]+)") do
+                    if tonumber(index) == regionidx then
+                        found = true
+                        break
+                    end
+                end
+                if not found then
+                    current = current .. "," .. tostring(regionidx)
+                end
+            end
+            reaper.SetExtState("DM_RENAMER", "SelectedRegions", current, false)
+        else
+            -- Single selection
+            reaper.SetExtState("DM_RENAMER", "SelectedRegions", tostring(regionidx), false)
+        end
+    end
 end
 
 -- Filter regions by search pattern
@@ -567,22 +608,16 @@ end
 
 function Regions.getListWithSelection(selectedOnly)
     if selectedOnly then
-        -- First try to get selected regions
-        local selectedRegions = Regions.getSelectedRegions()
+        -- Check for selected regions via ExtState (will be set by selection tracking)
+        local selectedRegions = Regions.getSelectedRegionsList()  -- NEW function
         if #selectedRegions > 0 then
             return selectedRegions
         end
         
-        -- Then try time selection
+        -- Fallback to time selection only (NOT cursor position)
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         if end_time - start_time > 0 then
             return Regions.getRegionsInTimeSelection()
-        end
-
-        -- Then try cursor position
-        local regions = Regions.getRegionsAtCursor()
-        if #regions > 0 then
-            return regions
         end
     end
     return Regions.getRegionList()

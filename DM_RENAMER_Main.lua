@@ -48,8 +48,9 @@ local state = {
     lastTimeSelStart = 0,
     lastTimeSelEnd = 0,
     lastTrackNames = {},
-    -- Region selection tracking
-    lastSelectedRegionIdx = -1,
+    -- Region/Marker selection tracking via ExtState
+    lastRegionSelectionString = "",
+    lastMarkerSelectionString = "",
     -- Region/Marker names cache for change detection
     lastRegionNames = {},
     lastMarkerNames = {},
@@ -187,10 +188,15 @@ local function refreshCurrentList()
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         hasSelection = (end_time - start_time) > 0
         
-        -- For Regions, also check for direct region selection
-        if state.currentTab == "Regions" and not hasSelection then
-            local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, reaper.GetCursorPosition())
-            hasSelection = regionidx >= 0
+        -- Also check for ExtState selection
+        if not hasSelection then
+            if state.currentTab == "Regions" then
+                local regionSelection = reaper.GetExtState("DM_RENAMER", "SelectedRegions") or ""
+                hasSelection = regionSelection ~= ""
+            else
+                local markerSelection = reaper.GetExtState("DM_RENAMER", "SelectedMarkers") or ""
+                hasSelection = markerSelection ~= ""
+            end
         end
     elseif state.currentTab == "All" then
         -- Check any type of selection (items, tracks, or time selection)
@@ -435,12 +441,11 @@ local function hasSelectionChanged()
         state.lastFolderItemSelection = currentSelection
         
     elseif state.currentTab == "Regions" then
-        -- Check for direct region selection
-        local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, reaper.GetCursorPosition())
-        
-        if regionidx ~= state.lastSelectedRegionIdx then
+        -- Check ExtState for region selection changes
+        local currentSelection = reaper.GetExtState("DM_RENAMER", "SelectedRegions") or ""
+        if currentSelection ~= state.lastRegionSelectionString then
             changed = true
-            state.lastSelectedRegionIdx = regionidx
+            state.lastRegionSelectionString = currentSelection
         end
         
         -- Also check time selection
@@ -451,6 +456,14 @@ local function hasSelectionChanged()
             changed = true
         end
     elseif state.currentTab == "Markers" then
+        -- Check ExtState for marker selection changes
+        local currentSelection = reaper.GetExtState("DM_RENAMER", "SelectedMarkers") or ""
+        if currentSelection ~= state.lastMarkerSelectionString then
+            changed = true
+            state.lastMarkerSelectionString = currentSelection
+        end
+        
+        -- Also check time selection
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         if start_time ~= state.lastTimeSelStart or end_time ~= state.lastTimeSelEnd then
             state.lastTimeSelStart = start_time
@@ -837,8 +850,87 @@ local function drawPatternHelpWindow()
     end
 end
 
+-- Track region/marker selection continuously using SWS
+local function trackRegionMarkerSelection()
+    -- Only track if we have the necessary extensions
+    if not reaper.APIExists("BR_GetMouseCursorContext") then
+        return
+    end
+    
+    -- Check if mouse was clicked
+    local mouseState = reaper.JS_Mouse_GetState and reaper.JS_Mouse_GetState(1) or 0
+    if mouseState == 1 then
+        local window, segment, details = reaper.BR_GetMouseCursorContext()
+        
+        if window == "timeline" and (segment == "region_lane" or details and details:match("marker")) then
+            -- Get position under mouse
+            local x = reaper.BR_GetMouseCursorContext_Position and reaper.BR_GetMouseCursorContext_Position() or reaper.GetCursorPosition()
+            local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, x)
+            
+            -- Check if Shift is held for multi-selection
+            local shiftState = reaper.JS_Mouse_GetState and reaper.JS_Mouse_GetState(0x0004) > 0 or false
+            
+            if regionidx >= 0 and (state.currentTab == "Regions" or state.currentTab == "All") then
+                -- Handle region selection
+                local current = reaper.GetExtState("DM_RENAMER", "SelectedRegions") or ""
+                
+                if shiftState and current ~= "" then
+                    -- Multi-selection: add to existing selection
+                    local found = false
+                    for index in string.gmatch(current, "([^,]+)") do
+                        if tonumber(index) == regionidx then
+                            found = true
+                            break
+                        end
+                    end
+                    if not found then
+                        current = current .. "," .. tostring(regionidx)
+                    end
+                else
+                    -- Single selection
+                    current = tostring(regionidx)
+                end
+                
+                reaper.SetExtState("DM_RENAMER", "SelectedRegions", current, false)
+            elseif markeridx >= 0 and (state.currentTab == "Markers" or state.currentTab == "All") then
+                -- Handle marker selection
+                local current = reaper.GetExtState("DM_RENAMER", "SelectedMarkers") or ""
+                
+                if shiftState and current ~= "" then
+                    -- Multi-selection: add to existing selection
+                    local found = false
+                    for index in string.gmatch(current, "([^,]+)") do
+                        if tonumber(index) == markeridx then
+                            found = true
+                            break
+                        end
+                    end
+                    if not found then
+                        current = current .. "," .. tostring(markeridx)
+                    end
+                else
+                    -- Single selection
+                    current = tostring(markeridx)
+                end
+                
+                reaper.SetExtState("DM_RENAMER", "SelectedMarkers", current, false)
+            end
+        elseif window == "timeline" and mouseState == 1 and not shiftState then
+            -- Click outside regions/markers - clear selection
+            if state.currentTab == "Regions" then
+                reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)
+            elseif state.currentTab == "Markers" then
+                reaper.SetExtState("DM_RENAMER", "SelectedMarkers", "", false)
+            end
+        end
+    end
+end
+
 -- Main loop
 local function loop()
+    -- Track region/marker selection before ImGui processing
+    trackRegionMarkerSelection()
+    
     local visible, open = reaper.ImGui_Begin(ctx, 'DM RENAMER', true)
     
     if visible then
@@ -865,6 +957,9 @@ local function loop()
                     state.needsRefresh = true
                     state.needsPreview = true
                     state.lastFolderItemSelection = {}  -- Reset selection tracking
+                    -- Clear any region/marker selections
+                    reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)
+                    reaper.SetExtState("DM_RENAMER", "SelectedMarkers", "", false)
                 end
                 reaper.ImGui_EndTabItem(ctx)
             end
@@ -875,6 +970,9 @@ local function loop()
                     state.currentTab = "All"
                     state.needsRefresh = true
                     state.needsPreview = true
+                    -- Clear any region/marker selections when leaving specific tabs
+                    reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)
+                    reaper.SetExtState("DM_RENAMER", "SelectedMarkers", "", false)
                 end
                 reaper.ImGui_EndTabItem(ctx)
             end
@@ -886,6 +984,9 @@ local function loop()
                     state.needsRefresh = true
                     state.needsPreview = true
                     state.lastSelectedItemPointers = {}  -- Reset selection tracking
+                    -- Clear any region/marker selections
+                    reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)
+                    reaper.SetExtState("DM_RENAMER", "SelectedMarkers", "", false)
                 end
                 reaper.ImGui_EndTabItem(ctx)
             end
@@ -896,6 +997,9 @@ local function loop()
                     state.currentTab = "Regions"
                     state.needsRefresh = true
                     state.needsPreview = true
+                    -- Clear any previous region/marker selections when switching tabs
+                    reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)
+                    reaper.SetExtState("DM_RENAMER", "SelectedMarkers", "", false)
                 end
                 reaper.ImGui_EndTabItem(ctx)
             end
@@ -906,6 +1010,9 @@ local function loop()
                     state.currentTab = "Markers"
                     state.needsRefresh = true
                     state.needsPreview = true
+                    -- Clear any previous region/marker selections when switching tabs
+                    reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)
+                    reaper.SetExtState("DM_RENAMER", "SelectedMarkers", "", false)
                 end
                 reaper.ImGui_EndTabItem(ctx)
             end
@@ -917,6 +1024,9 @@ local function loop()
                     state.needsRefresh = true
                     state.needsPreview = true
                     state.lastSelectedTrackPointers = {}  -- Reset selection tracking
+                    -- Clear any region/marker selections
+                    reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)
+                    reaper.SetExtState("DM_RENAMER", "SelectedMarkers", "", false)
                 end
                 reaper.ImGui_EndTabItem(ctx)
             end
