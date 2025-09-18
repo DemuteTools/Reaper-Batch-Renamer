@@ -948,6 +948,96 @@ local function loop()
             reaper.ImGui_EndMenuBar(ctx)
         end
         
+        -- PRESETS SECTION (Above tabs, available for all tabs)
+        reaper.ImGui_Text(ctx, "PRESETS")
+        reaper.ImGui_Separator(ctx)
+        
+        -- Create a child window for presets to contain them properly
+        if reaper.ImGui_BeginChild(ctx, "PresetSection", -1, 40, reaper.ImGui_WindowFlags_None()) then
+            local labelWidth = 100
+            local controlPosX = labelWidth + 10
+            
+            -- Load preset dropdown
+            reaper.ImGui_Text(ctx, "Load Preset:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            reaper.ImGui_SetNextItemWidth(ctx, 200)
+
+            local presetNames = Presets.list()
+            table.insert(presetNames, 1, "-- None --")
+
+            if reaper.ImGui_BeginCombo(ctx, "##LoadPreset", state.selectedPreset or "-- None --") then
+                for _, name in ipairs(presetNames) do
+                    if reaper.ImGui_Selectable(ctx, name, name == state.selectedPreset) then
+                        if name ~= "-- None --" then
+                            local preset = Presets.load(name)
+                            if preset then
+                                -- Apply preset to state
+                                for k, v in pairs(preset) do
+                                    state[k] = v
+                                end
+                                state.selectedPreset = name
+                                state.needsPreview = true
+                            end
+                        else
+                            state.selectedPreset = nil
+                        end
+                    end
+                end
+                reaper.ImGui_EndCombo(ctx)
+            end
+
+            -- Save preset
+            reaper.ImGui_Text(ctx, "Save as:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            reaper.ImGui_SetNextItemWidth(ctx, 150)
+            local nameChanged, newName = reaper.ImGui_InputText(ctx, "##PresetName", state.presetName)
+            if nameChanged then
+                state.presetName = newName
+            end
+
+            reaper.ImGui_SameLine(ctx)
+            if reaper.ImGui_Button(ctx, "Save") then
+                if state.presetName ~= "" then
+                    if Presets.save(state.presetName, state) then
+                        state.selectedPreset = state.presetName
+                        state.presetName = ""
+                    end
+                end
+            end
+
+            -- Override preset button (only visible when a preset is selected)
+            if state.selectedPreset and state.selectedPreset ~= "-- None --" then
+                reaper.ImGui_SameLine(ctx)
+                if reaper.ImGui_Button(ctx, "Override") then
+                    if Presets.save(state.selectedPreset, state) then
+                        -- Preset overridden successfully
+                        -- Could add a notification here if needed
+                    end
+                end
+                if reaper.ImGui_IsItemHovered(ctx) then
+                    reaper.ImGui_BeginTooltip(ctx)
+                    reaper.ImGui_Text(ctx, "Replace the selected preset with current settings")
+                    reaper.ImGui_EndTooltip(ctx)
+                end
+            end
+
+            -- Delete preset
+            if state.selectedPreset and state.selectedPreset ~= "-- None --" then
+                reaper.ImGui_SameLine(ctx)
+                if reaper.ImGui_Button(ctx, "Delete") then
+                    if Presets.delete(state.selectedPreset) then
+                        state.selectedPreset = nil
+                    end
+                end
+            end
+            
+            reaper.ImGui_EndChild(ctx)
+        end
+        
+        reaper.ImGui_Separator(ctx)
+        
         -- Tabs (new order: Folder Items first, then All, then the rest)
         if reaper.ImGui_BeginTabBar(ctx, "MainTabs") then
             -- 1. Folder Items (first and default)
@@ -1039,6 +1129,7 @@ local function loop()
         local leftColumnWidth = 400
         
         -- LEFT COLUMN (Options)
+        -- Adjust height to account for preset section above
         if reaper.ImGui_BeginChild(ctx, "LeftColumn", leftColumnWidth, -30, reaper.ImGui_WindowFlags_None()) then
             -- Define alignment constants
             local labelWidth = 120
@@ -1180,72 +1271,6 @@ local function loop()
                 reaper.ImGui_SameLine(ctx)
                 if reaper.ImGui_Button(ctx, "Refresh List") then
                     state.needsRefresh = true
-                end
-
-                reaper.ImGui_Separator(ctx)
-
-                -- PRESETS SECTION
-                reaper.ImGui_Text(ctx, "PRESETS")
-                reaper.ImGui_Separator(ctx)
-
-                -- Load preset dropdown
-                reaper.ImGui_Text(ctx, "Load Preset:")
-                reaper.ImGui_SameLine(ctx)
-                reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-                reaper.ImGui_SetNextItemWidth(ctx, 200)
-
-                local presetNames = Presets.list()
-                table.insert(presetNames, 1, "-- None --")
-
-                if reaper.ImGui_BeginCombo(ctx, "##LoadPreset", state.selectedPreset or "-- None --") then
-                    for _, name in ipairs(presetNames) do
-                        if reaper.ImGui_Selectable(ctx, name, name == state.selectedPreset) then
-                            if name ~= "-- None --" then
-                                local preset = Presets.load(name)
-                                if preset then
-                                    -- Apply preset to state
-                                    for k, v in pairs(preset) do
-                                        state[k] = v
-                                    end
-                                    state.selectedPreset = name
-                                    state.needsPreview = true
-                                end
-                            else
-                                state.selectedPreset = nil
-                            end
-                        end
-                    end
-                    reaper.ImGui_EndCombo(ctx)
-                end
-
-                -- Save preset
-                reaper.ImGui_Text(ctx, "Save as:")
-                reaper.ImGui_SameLine(ctx)
-                reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-                reaper.ImGui_SetNextItemWidth(ctx, 150)
-                local nameChanged, newName = reaper.ImGui_InputText(ctx, "##PresetName", state.presetName)
-                if nameChanged then
-                    state.presetName = newName
-                end
-
-                reaper.ImGui_SameLine(ctx)
-                if reaper.ImGui_Button(ctx, "Save") then
-                    if state.presetName ~= "" then
-                        if Presets.save(state.presetName, state) then
-                            state.selectedPreset = state.presetName
-                            state.presetName = ""
-                        end
-                    end
-                end
-
-                -- Delete preset
-                if state.selectedPreset and state.selectedPreset ~= "-- None --" then
-                    reaper.ImGui_SameLine(ctx)
-                    if reaper.ImGui_Button(ctx, "Delete") then
-                        if Presets.delete(state.selectedPreset) then
-                            state.selectedPreset = nil
-                        end
-                    end
                 end
 
                 reaper.ImGui_Separator(ctx)
@@ -1605,6 +1630,7 @@ local function loop()
         -- RIGHT COLUMN (List with two-column table)
         reaper.ImGui_SameLine(ctx)
         local rightColumnWidth = windowWidth - leftColumnWidth - 10
+        -- Adjust height to account for preset section above
         if reaper.ImGui_BeginChild(ctx, "RightColumn", rightColumnWidth, -30, reaper.ImGui_WindowFlags_None()) then
             -- Table display with full height
             local tableFlags = reaper.ImGui_TableFlags_Borders() |
