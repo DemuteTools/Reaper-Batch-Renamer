@@ -331,35 +331,73 @@ end
 
 -- Get list with selection filter
 function FolderItems.getListWithSelection(selectedOnly)
+    local items = {}
+
+    -- Check what kind of selection we have
+    local selectedItemCount = reaper.CountSelectedMediaItems(0)
+    local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
+    local hasTimeSelection = (end_time - start_time) > 0
+
     if selectedOnly then
-        local items = {}
-        local itemCount = reaper.CountSelectedMediaItems(0)
-        
-        for i = 0, itemCount - 1 do
-            local item = reaper.GetSelectedMediaItem(0, i)
-            if item and FolderItems.isEmptyItem(item) then
-                local itemData = createFolderItemData(item, i)
-                
-                -- Skip if item was excluded (e.g., [JOIN] note)
-                if itemData then
-                    -- Build context info string
-                    local contextParts = {}
-                    if itemData.regionParent then
-                        table.insert(contextParts, "Region: " .. itemData.regionParent)
-                        if itemData.regionChildren and #itemData.regionChildren > 0 then
-                            table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
+        -- Priority: item selection > time selection
+        if selectedItemCount > 0 then
+            -- Filter by selected items
+            for i = 0, selectedItemCount - 1 do
+                local item = reaper.GetSelectedMediaItem(0, i)
+                if item and FolderItems.isEmptyItem(item) then
+                    local itemData = createFolderItemData(item, i)
+                    if itemData then
+                        -- Build context info...
+                        local contextParts = {}
+                        if itemData.regionParent then
+                            table.insert(contextParts, "Region: " .. itemData.regionParent)
+                            if itemData.regionChildren and #itemData.regionChildren > 0 then
+                                table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
+                            end
                         end
+                        if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
+                            table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
+                        end
+                        itemData.contextInfo = table.concat(contextParts, " | ")
+                        table.insert(items, itemData)
                     end
-                    if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
-                        table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
-                    end
-                    itemData.contextInfo = table.concat(contextParts, " | ")
-                    
-                    table.insert(items, itemData)
                 end
             end
+        elseif hasTimeSelection then
+            -- Filter by time selection
+            local itemCount = reaper.CountMediaItems(0)
+            for i = 0, itemCount - 1 do
+                local item = reaper.GetMediaItem(0, i)
+                if item and FolderItems.isEmptyItem(item) then
+                    local position = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+                    local length = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+                    local itemEnd = position + length
+
+                    -- Check if item overlaps with time selection
+                    if position < end_time and itemEnd > start_time then
+                        local itemData = createFolderItemData(item, i)
+                        if itemData then
+                            -- Build context info...
+                            local contextParts = {}
+                            if itemData.regionParent then
+                                table.insert(contextParts, "Region: " .. itemData.regionParent)
+                                if itemData.regionChildren and #itemData.regionChildren > 0 then
+                                    table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
+                                end
+                            end
+                            if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
+                                table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
+                            end
+                            itemData.contextInfo = table.concat(contextParts, " | ")
+                            table.insert(items, itemData)
+                        end
+                    end
+                end
+            end
+        else
+            -- No selection, return all
+            return FolderItems.getList()
         end
-        
         return items
     else
         return FolderItems.getList()

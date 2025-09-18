@@ -170,8 +170,11 @@ local function refreshCurrentList()
     
     -- Detect if there's a selection
     local hasSelection = false
-    if state.currentTab == "Media Items" then
-        hasSelection = reaper.CountSelectedMediaItems(0) > 0
+    if state.currentTab == "Media Items" or state.currentTab == "Folder Items" then
+        -- Check for item selection first, then time selection
+        local selectedItems = reaper.CountSelectedMediaItems(0)
+        local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
+        hasSelection = selectedItems > 0 or (end_time - start_time) > 0
     elseif state.currentTab == "Tracks" then
         hasSelection = reaper.CountSelectedTracks(0) > 0
     elseif state.currentTab == "Regions" or state.currentTab == "Markers" then

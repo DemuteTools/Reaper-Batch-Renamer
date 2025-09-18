@@ -61,20 +61,59 @@ end
 -- Get all items in project
 function Items.getItemList(selectedOnly)
     local items = {}
-    local itemCount = reaper.CountMediaItems(0)
-    
-    for i = 0, itemCount - 1 do
-        local item = reaper.GetMediaItem(0, i)
-        if item then
-            if not selectedOnly or reaper.IsMediaItemSelected(item) then
-                -- Exclude folder items (empty items without audio or MIDI)
-                if not FolderItems.isEmptyItem(item) then
+
+    -- Check what kind of selection we have
+    local selectedItemCount = reaper.CountSelectedMediaItems(0)
+    local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
+    local hasTimeSelection = (end_time - start_time) > 0
+
+    if selectedOnly then
+        -- Priority: item selection > time selection
+        if selectedItemCount > 0 then
+            -- Filter by selected items
+            for i = 0, selectedItemCount - 1 do
+                local item = reaper.GetSelectedMediaItem(0, i)
+                if item and not FolderItems.isEmptyItem(item) then
+                    table.insert(items, createItemData(item, i))
+                end
+            end
+        elseif hasTimeSelection then
+            -- Filter by time selection
+            local itemCount = reaper.CountMediaItems(0)
+            for i = 0, itemCount - 1 do
+                local item = reaper.GetMediaItem(0, i)
+                if item and not FolderItems.isEmptyItem(item) then
+                    local position = reaper.GetMediaItemInfo_Value(item, "D_POSITION")
+                    local length = reaper.GetMediaItemInfo_Value(item, "D_LENGTH")
+                    local itemEnd = position + length
+
+                    -- Check if item overlaps with time selection
+                    if position < end_time and itemEnd > start_time then
+                        table.insert(items, createItemData(item, i))
+                    end
+                end
+            end
+        else
+            -- No selection, return all non-folder items
+            local itemCount = reaper.CountMediaItems(0)
+            for i = 0, itemCount - 1 do
+                local item = reaper.GetMediaItem(0, i)
+                if item and not FolderItems.isEmptyItem(item) then
                     table.insert(items, createItemData(item, i))
                 end
             end
         end
+    else
+        -- Return all non-folder items
+        local itemCount = reaper.CountMediaItems(0)
+        for i = 0, itemCount - 1 do
+            local item = reaper.GetMediaItem(0, i)
+            if item and not FolderItems.isEmptyItem(item) then
+                table.insert(items, createItemData(item, i))
+            end
+        end
     end
-    
+
     return items
 end
 
