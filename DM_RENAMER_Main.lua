@@ -48,6 +48,11 @@ local state = {
     lastTimeSelStart = 0,
     lastTimeSelEnd = 0,
     lastTrackNames = {},
+    -- Region selection tracking
+    lastSelectedRegionIdx = -1,
+    -- Region/Marker names cache for change detection
+    lastRegionNames = {},
+    lastMarkerNames = {},
     -- Operation mode
     operation = "none",  -- none, removeNumbers, removeSpecialChars, removeExtension, cleanSpaces, extractBrackets, extractParens, etc.
     -- Lua Pattern support
@@ -178,9 +183,15 @@ local function refreshCurrentList()
     elseif state.currentTab == "Tracks" then
         hasSelection = reaper.CountSelectedTracks(0) > 0
     elseif state.currentTab == "Regions" or state.currentTab == "Markers" then
-        -- Check for time selection only (regions/markers don't have selection concept in Reaper)
+        -- Check for time selection first
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         hasSelection = (end_time - start_time) > 0
+        
+        -- For Regions, also check for direct region selection
+        if state.currentTab == "Regions" and not hasSelection then
+            local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, reaper.GetCursorPosition())
+            hasSelection = regionidx >= 0
+        end
     elseif state.currentTab == "All" then
         -- Check any type of selection (items, tracks, or time selection)
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
@@ -257,13 +268,41 @@ local function hasProjectStateChanged()
         state.lastItemCount = itemCount
     end
     
-    -- Check region/marker count
+    -- Check region/marker count AND names
     local retval, num_markers, num_regions = reaper.CountProjectMarkers(0)
     if num_markers ~= state.lastMarkerCount or num_regions ~= state.lastRegionCount then
         changed = true
         state.lastMarkerCount = num_markers
         state.lastRegionCount = num_regions
     end
+    
+    -- Check for region/marker name changes (important for Folder Items)
+    local currentRegionNames = {}
+    local currentMarkerNames = {}
+    
+    for i = 0, num_markers + num_regions - 1 do
+        local _, isRegion, pos, rgnend, name, markrgnindexnumber = reaper.EnumProjectMarkers3(0, i)
+        
+        if isRegion then
+            local key = markrgnindexnumber .. "_" .. string.format("%.4f", pos)
+            currentRegionNames[key] = name
+            -- Check if name changed
+            if state.lastRegionNames[key] and state.lastRegionNames[key] ~= name then
+                changed = true
+            end
+        else
+            local key = markrgnindexnumber .. "_" .. string.format("%.4f", pos)
+            currentMarkerNames[key] = name
+            -- Check if name changed
+            if state.lastMarkerNames[key] and state.lastMarkerNames[key] ~= name then
+                changed = true
+            end
+        end
+    end
+    
+    -- Update caches
+    state.lastRegionNames = currentRegionNames
+    state.lastMarkerNames = currentMarkerNames
     
     -- Check time selection
     local startTime, endTime = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
@@ -273,24 +312,23 @@ local function hasProjectStateChanged()
         state.lastTimeSelEnd = endTime
     end
     
-    -- Check if any track names have changed (for current tab only)
-    if not changed and state.currentTab == "Tracks" then
-        for i = 0, trackCount - 1 do
-            local track = reaper.GetTrack(0, i)
-            local _, trackName = reaper.GetTrackName(track)
-            local trackKey = tostring(track)
-            if state.lastTrackNames and state.lastTrackNames[trackKey] ~= trackName then
-                changed = true
-                break
-            end
+    -- Check track names (for all tabs, especially important for Folder Items)
+    local currentTrackNames = {}
+    for i = 0, trackCount - 1 do
+        local track = reaper.GetTrack(0, i)
+        local _, trackName = reaper.GetTrackName(track)
+        local trackKey = tostring(track)
+        currentTrackNames[trackKey] = trackName
+        
+        if state.lastTrackNames[trackKey] and state.lastTrackNames[trackKey] ~= trackName then
+            changed = true
         end
-        -- Update track names cache
-        state.lastTrackNames = {}
-        for i = 0, trackCount - 1 do
-            local track = reaper.GetTrack(0, i)
-            local _, trackName = reaper.GetTrackName(track)
-            state.lastTrackNames[tostring(track)] = trackName
-        end
+    end
+    state.lastTrackNames = currentTrackNames
+    
+    -- Force refresh for Folder Items tab if any project change detected
+    if state.currentTab == "Folder Items" and changed then
+        return true
     end
     
     return changed
@@ -396,7 +434,23 @@ local function hasSelectionChanged()
         
         state.lastFolderItemSelection = currentSelection
         
-    elseif state.currentTab == "Regions" or state.currentTab == "Markers" then
+    elseif state.currentTab == "Regions" then
+        -- Check for direct region selection
+        local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, reaper.GetCursorPosition())
+        
+        if regionidx ~= state.lastSelectedRegionIdx then
+            changed = true
+            state.lastSelectedRegionIdx = regionidx
+        end
+        
+        -- Also check time selection
+        local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
+        if start_time ~= state.lastTimeSelStart or end_time ~= state.lastTimeSelEnd then
+            state.lastTimeSelStart = start_time
+            state.lastTimeSelEnd = end_time
+            changed = true
+        end
+    elseif state.currentTab == "Markers" then
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         if start_time ~= state.lastTimeSelStart or end_time ~= state.lastTimeSelEnd then
             state.lastTimeSelStart = start_time
@@ -1865,8 +1919,26 @@ local function loop()
     end
 end
 
+-- Initialize region/marker names cache
+local function initializeProjectCache()
+    local retval, num_markers, num_regions = reaper.CountProjectMarkers(0)
+    
+    for i = 0, num_markers + num_regions - 1 do
+        local _, isRegion, pos, rgnend, name, markrgnindexnumber = reaper.EnumProjectMarkers3(0, i)
+        
+        if isRegion then
+            local key = markrgnindexnumber .. "_" .. string.format("%.4f", pos)
+            state.lastRegionNames[key] = name
+        else
+            local key = markrgnindexnumber .. "_" .. string.format("%.4f", pos)
+            state.lastMarkerNames[key] = name
+        end
+    end
+end
+
 -- Start
 -- Load initial list for the default tab
+initializeProjectCache()
 state.needsRefresh = true
 
 reaper.defer(loop)

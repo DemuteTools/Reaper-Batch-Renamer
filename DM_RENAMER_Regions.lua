@@ -99,6 +99,46 @@ function Regions.getRegionsInTimeSelection()
     return regions
 end
 
+-- Get selected regions (using marquee selection or other selection methods)
+function Regions.getSelectedRegions()
+    local regions = {}
+    local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
+    
+    -- Get current selection via GetLastMarkerAndCurRegion
+    local markeridx, regionidx = reaper.GetLastMarkerAndCurRegion(0, reaper.GetCursorPosition())
+    
+    -- Also check if there's a selected region via the region manager
+    for i = 0, num_markers + num_regions - 1 do
+        local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
+        
+        if isRegion then
+            -- Check if this region is selected (compare with last selected region)
+            local isSelected = false
+            
+            -- Method 1: Check if it's the last touched region
+            if regionidx >= 0 and markrgnindexnumber == regionidx then
+                isSelected = true
+            end
+            
+            -- Method 2: Check if cursor is within region (as fallback)
+            local cursorPos = reaper.GetCursorPosition()
+            if not isSelected and cursorPos >= pos and cursorPos < rgnend then
+                -- Additional check: see if this region was clicked
+                isSelected = true
+            end
+            
+            if isSelected then
+                local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+                if regionData then
+                    table.insert(regions, regionData)
+                end
+            end
+        end
+    end
+    
+    return regions
+end
+
 -- Filter regions by search pattern
 function Regions.filterRegions(regions, searchPattern, options)
     if not searchPattern or searchPattern == "" then
@@ -527,7 +567,13 @@ end
 
 function Regions.getListWithSelection(selectedOnly)
     if selectedOnly then
-        -- First try time selection
+        -- First try to get selected regions
+        local selectedRegions = Regions.getSelectedRegions()
+        if #selectedRegions > 0 then
+            return selectedRegions
+        end
+        
+        -- Then try time selection
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         if end_time - start_time > 0 then
             return Regions.getRegionsInTimeSelection()

@@ -1,2 +1,21 @@
 return {
+["Std Demute"] = {
+  useLuaPatterns = false,
+  suffix = "",
+  transformCase = "snake",
+  folderItemPattern = "hierarchical",
+  replaceText = "",
+  wholeWord = false,
+  findText = "",
+  folderItemAutoIncrement = true,
+  folderItemExcludeTag = "//",
+  folderItemCustomPattern = "{region}_{track}",
+  folderItemSeparator = "_",
+  jumpToPosition = true,
+  caseSensitive = false,
+  autoIncrement = true,
+  autoSelectChanged = true,
+  prefix = "sfx_",
+  operation = "none",
+},
 }
