@@ -8,6 +8,19 @@ local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
 local Common = dofile(script_path .. "DM_RENAMER_Common.lua")
 local FolderItems = dofile(script_path .. "DM_RENAMER_FolderItems.lua")
 
+-- Helper function to check if a name should be excluded
+local function isExcluded(name, excludeTags)
+    if not excludeTags or excludeTags == "" or not name then return false end
+    
+    -- Split tags by spaces and check each one
+    for tag in string.gmatch(excludeTags, "%S+") do
+        if name:sub(1, #tag) == tag then
+            return true
+        end
+    end
+    return false
+end
+
 -- Structure for item data
 local function createItemData(item, index)
     local take = reaper.GetActiveTake(item)
@@ -59,7 +72,7 @@ local function createItemData(item, index)
 end
 
 -- Get all items in project
-function Items.getItemList(selectedOnly)
+function Items.getItemList(selectedOnly, excludeTags)
     local items = {}
 
     -- Check what kind of selection we have
@@ -74,7 +87,11 @@ function Items.getItemList(selectedOnly)
             for i = 0, selectedItemCount - 1 do
                 local item = reaper.GetSelectedMediaItem(0, i)
                 if item and not FolderItems.isEmptyItem(item) then
-                    table.insert(items, createItemData(item, i))
+                    local itemData = createItemData(item, i)
+                    -- Check if item should be excluded based on take name
+                    if itemData and not isExcluded(itemData.name, excludeTags) then
+                        table.insert(items, itemData)
+                    end
                 end
             end
         elseif hasTimeSelection then
@@ -89,7 +106,11 @@ function Items.getItemList(selectedOnly)
 
                     -- Check if item overlaps with time selection
                     if position < end_time and itemEnd > start_time then
-                        table.insert(items, createItemData(item, i))
+                        local itemData = createItemData(item, i)
+                        -- Check if item should be excluded based on take name
+                        if itemData and not isExcluded(itemData.name, excludeTags) then
+                            table.insert(items, itemData)
+                        end
                     end
                 end
             end
@@ -99,7 +120,11 @@ function Items.getItemList(selectedOnly)
             for i = 0, itemCount - 1 do
                 local item = reaper.GetMediaItem(0, i)
                 if item and not FolderItems.isEmptyItem(item) then
-                    table.insert(items, createItemData(item, i))
+                    local itemData = createItemData(item, i)
+                    -- Check if item should be excluded based on take name
+                    if itemData and not isExcluded(itemData.name, excludeTags) then
+                        table.insert(items, itemData)
+                    end
                 end
             end
         end
@@ -490,12 +515,12 @@ function Items.importFromFile(items, filename)
 end
 
 -- Wrapper functions for main interface compatibility
-function Items.getList()
-    return Items.getItemList(false)  -- Get all items
+function Items.getList(excludeTags)
+    return Items.getItemList(false, excludeTags)  -- Get all items
 end
 
-function Items.getListWithSelection(selectedOnly)
-    return Items.getItemList(selectedOnly)
+function Items.getListWithSelection(selectedOnly, excludeTags)
+    return Items.getItemList(selectedOnly, excludeTags)
 end
 
 function Items.updatePreview(itemList, findText, replaceText, options)
@@ -553,6 +578,17 @@ function Items.updatePreview(itemList, findText, replaceText, options)
                         options.useLuaPatterns  -- Pass Lua patterns flag
                     )
                 end
+            end
+        end
+        
+        -- Priority 3.5: Space replacement (independent of Find/Replace)
+        if options.spaceReplacement and options.spaceReplacement ~= "" then
+            if options.spaceReplacement == "remove" then
+                newName = newName:gsub("%s+", "")
+            elseif options.spaceReplacement == "_" then
+                newName = newName:gsub("%s+", "_")
+            elseif options.spaceReplacement == "-" then
+                newName = newName:gsub("%s+", "-")
             end
         end
         

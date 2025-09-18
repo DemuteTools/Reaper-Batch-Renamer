@@ -29,7 +29,10 @@ function Presets.save(name, state)
         folderItemSeparator = state.folderItemSeparator,
         folderItemCustomPattern = state.folderItemCustomPattern,
         folderItemAutoIncrement = state.folderItemAutoIncrement,
-        folderItemExcludeTag = state.folderItemExcludeTag
+        -- Save global exclude tags
+        excludeTags = state.excludeTags,
+        -- Save space replacement setting
+        spaceReplacement = state.spaceReplacement
     }
 
     -- Save to file
@@ -44,7 +47,15 @@ end
 
 function Presets.load(name)
     local presets = Presets.load_all()
-    return presets[name]
+    local preset = presets[name]
+    
+    -- Handle backwards compatibility: convert old folderItemExcludeTag to excludeTags
+    if preset and preset.folderItemExcludeTag and not preset.excludeTags then
+        preset.excludeTags = preset.folderItemExcludeTag
+        preset.folderItemExcludeTag = nil  -- Remove old field
+    end
+    
+    return preset
 end
 
 function Presets.load_all()

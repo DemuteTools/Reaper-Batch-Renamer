@@ -7,6 +7,19 @@ local Tracks = {}
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
 local Common = dofile(script_path .. "DM_RENAMER_Common.lua")
 
+-- Helper function to check if a name should be excluded
+local function isExcluded(name, excludeTags)
+    if not excludeTags or excludeTags == "" or not name then return false end
+    
+    -- Split tags by spaces and check each one
+    for tag in string.gmatch(excludeTags, "%S+") do
+        if name:sub(1, #tag) == tag then
+            return true
+        end
+    end
+    return false
+end
+
 -- Structure for track data
 local function createTrackData(track, index)
     local _, name = reaper.GetTrackName(track)
@@ -67,15 +80,19 @@ local function createTrackData(track, index)
 end
 
 -- Get all tracks in project
-function Tracks.getTrackList(selectedOnly)
+function Tracks.getTrackList(selectedOnly, excludeTags)
     local tracks = {}
     local trackCount = reaper.CountTracks(0)
     
     for i = 0, trackCount - 1 do
         local track = reaper.GetTrack(0, i)
         if track then
-            if not selectedOnly or reaper.IsTrackSelected(track) then
-                table.insert(tracks, createTrackData(track, i))
+            local _, name = reaper.GetTrackName(track)
+            -- Check if track should be excluded
+            if not isExcluded(name, excludeTags) then
+                if not selectedOnly or reaper.IsTrackSelected(track) then
+                    table.insert(tracks, createTrackData(track, i))
+                end
             end
         end
     end
@@ -556,12 +573,12 @@ function Tracks.applyTrackTemplate(tracks, templatePath)
 end
 
 -- Wrapper functions for main interface compatibility
-function Tracks.getList()
-    return Tracks.getTrackList(false)  -- Get all tracks
+function Tracks.getList(excludeTags)
+    return Tracks.getTrackList(false, excludeTags)  -- Get all tracks
 end
 
-function Tracks.getListWithSelection(selectedOnly)
-    return Tracks.getTrackList(selectedOnly)
+function Tracks.getListWithSelection(selectedOnly, excludeTags)
+    return Tracks.getTrackList(selectedOnly, excludeTags)
 end
 
 function Tracks.updatePreview(trackList, findText, replaceText, options)
@@ -621,6 +638,17 @@ function Tracks.updatePreview(trackList, findText, replaceText, options)
                         options.useLuaPatterns
                     )
                 end
+            end
+        end
+        
+        -- Priority 3.5: Space replacement (independent of Find/Replace)
+        if options.spaceReplacement and options.spaceReplacement ~= "" then
+            if options.spaceReplacement == "remove" then
+                newName = newName:gsub("%s+", "")
+            elseif options.spaceReplacement == "_" then
+                newName = newName:gsub("%s+", "_")
+            elseif options.spaceReplacement == "-" then
+                newName = newName:gsub("%s+", "-")
             end
         end
         

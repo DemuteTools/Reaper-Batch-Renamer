@@ -7,6 +7,19 @@ local Regions = {}
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
 local Common = dofile(script_path .. "DM_RENAMER_Common.lua")
 
+-- Helper function to check if a name should be excluded
+local function isExcluded(name, excludeTags)
+    if not excludeTags or excludeTags == "" or not name then return false end
+    
+    -- Split tags by spaces and check each one
+    for tag in string.gmatch(excludeTags, "%S+") do
+        if name:sub(1, #tag) == tag then
+            return true
+        end
+    end
+    return false
+end
+
 -- Structure for region data
 local function createRegionData(idx, isRegion, pos, rgnend, name, markrgnindexnumber, color)
     if not isRegion then
@@ -31,7 +44,7 @@ local function createRegionData(idx, isRegion, pos, rgnend, name, markrgnindexnu
 end
 
 -- Get all regions in project
-function Regions.getRegionList()
+function Regions.getRegionList(excludeTags)
     local regions = {}
     local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
     
@@ -39,9 +52,12 @@ function Regions.getRegionList()
         local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
         
         if isRegion then
-            local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
-            if regionData then
-                table.insert(regions, regionData)
+            -- Check if region should be excluded
+            if not isExcluded(name, excludeTags) then
+                local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+                if regionData then
+                    table.insert(regions, regionData)
+                end
             end
         end
     end
@@ -73,7 +89,7 @@ function Regions.getRegionsAtCursor()
 end
 
 -- Get regions in time selection
-function Regions.getRegionsInTimeSelection()
+function Regions.getRegionsInTimeSelection(excludeTags)
     local startTime, endTime = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
     if startTime == endTime then
         return {}  -- No time selection
@@ -88,9 +104,12 @@ function Regions.getRegionsInTimeSelection()
         if isRegion then
             -- Check if region overlaps with time selection
             if pos < endTime and rgnend > startTime then
-                local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
-                if regionData then
-                    table.insert(regions, regionData)
+                -- Check if region should be excluded
+                if not isExcluded(name, excludeTags) then
+                    local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+                    if regionData then
+                        table.insert(regions, regionData)
+                    end
                 end
             end
         end
@@ -100,7 +119,7 @@ function Regions.getRegionsInTimeSelection()
 end
 
 -- Get truly selected regions (using ExtState tracking and SWS if available)
-function Regions.getSelectedRegionsList()
+function Regions.getSelectedRegionsList(excludeTags)
     local regions = {}
     local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
     
@@ -129,9 +148,12 @@ function Regions.getSelectedRegionsList()
         local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
         
         if isRegion and selectedIndices[markrgnindexnumber] then
-            local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
-            if regionData then
-                table.insert(regions, regionData)
+            -- Check if region should be excluded
+            if not isExcluded(name, excludeTags) then
+                local regionData = createRegionData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+                if regionData then
+                    table.insert(regions, regionData)
+                end
             end
         end
     end
@@ -602,14 +624,14 @@ end
 
 
 -- Wrapper functions for main interface compatibility
-function Regions.getList()
-    return Regions.getRegionList()
+function Regions.getList(excludeTags)
+    return Regions.getRegionList(excludeTags)
 end
 
-function Regions.getListWithSelection(selectedOnly)
+function Regions.getListWithSelection(selectedOnly, excludeTags)
     if selectedOnly then
         -- Check for selected regions via ExtState (will be set by selection tracking)
-        local selectedRegions = Regions.getSelectedRegionsList()  -- NEW function
+        local selectedRegions = Regions.getSelectedRegionsList(excludeTags)  -- NEW function
         if #selectedRegions > 0 then
             return selectedRegions
         end
@@ -617,10 +639,10 @@ function Regions.getListWithSelection(selectedOnly)
         -- Fallback to time selection only (NOT cursor position)
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         if end_time - start_time > 0 then
-            return Regions.getRegionsInTimeSelection()
+            return Regions.getRegionsInTimeSelection(excludeTags)
         end
     end
-    return Regions.getRegionList()
+    return Regions.getRegionList(excludeTags)
 end
 
 function Regions.updatePreview(regionList, findText, replaceText, options)
@@ -678,6 +700,17 @@ function Regions.updatePreview(regionList, findText, replaceText, options)
                         options.useLuaPatterns
                     )
                 end
+            end
+        end
+        
+        -- Priority 3.5: Space replacement (independent of Find/Replace)
+        if options.spaceReplacement and options.spaceReplacement ~= "" then
+            if options.spaceReplacement == "remove" then
+                newName = newName:gsub("%s+", "")
+            elseif options.spaceReplacement == "_" then
+                newName = newName:gsub("%s+", "_")
+            elseif options.spaceReplacement == "-" then
+                newName = newName:gsub("%s+", "-")
             end
         end
         

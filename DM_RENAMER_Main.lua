@@ -129,7 +129,10 @@ local state = {
     folderItemSeparator = "_",
     folderItemCustomPattern = "{region}_{track}",
     folderItemAutoIncrement = true,  -- Auto-increment duplicate names (default: true)
-    folderItemExcludeTag = "",  -- Tag to exclude tracks/regions from naming
+    -- Global exclude tags (space-separated)
+    excludeTags = "",  -- Global tags to exclude items/regions/tracks from renaming
+    -- Space replacement mode
+    spaceReplacement = "",  -- "" = none, "_" = underscore, "-" = dash, "remove" = remove spaces
     -- Jump to position settings
     jumpToPosition = true,  -- Jump to selected item position (default: true)
     -- Auto-increment for all tabs
@@ -146,6 +149,19 @@ local state = {
     lastSortColumn = -1
 }
 
+-- Helper function to check if a name should be excluded
+local function isExcluded(name, excludeTags)
+    if not excludeTags or excludeTags == "" or not name then return false end
+    
+    -- Split tags by spaces and check each one
+    for tag in string.gmatch(excludeTags, "%S+") do
+        if name:sub(1, #tag) == tag then
+            return true
+        end
+    end
+    return false
+end
+
 -- Initialize
 Settings.load()
 
@@ -155,7 +171,10 @@ if Settings.current.folderItems then
     state.folderItemSeparator = Settings.current.folderItems.separator or state.folderItemSeparator
     state.folderItemCustomPattern = Settings.current.folderItems.customPattern or state.folderItemCustomPattern
     state.folderItemAutoIncrement = Settings.current.folderItems.autoIncrement ~= nil and Settings.current.folderItems.autoIncrement or state.folderItemAutoIncrement
-    state.folderItemExcludeTag = Settings.current.folderItems.excludeTag or state.folderItemExcludeTag
+    -- Load exclude tags from settings (handle both old and new format)
+    state.excludeTags = Settings.current.excludeTags or Settings.current.folderItems and Settings.current.folderItems.excludeTag or state.excludeTags
+    -- Load space replacement setting
+    state.spaceReplacement = Settings.current.spaceReplacement or state.spaceReplacement
 end
 
 -- Function to save folder items settings
@@ -167,7 +186,10 @@ local function saveFolderItemsSettings()
     Settings.current.folderItems.separator = state.folderItemSeparator
     Settings.current.folderItems.customPattern = state.folderItemCustomPattern
     Settings.current.folderItems.autoIncrement = state.folderItemAutoIncrement
-    Settings.current.folderItems.excludeTag = state.folderItemExcludeTag
+    -- Save exclude tags globally
+    Settings.current.excludeTags = state.excludeTags
+    -- Save space replacement setting
+    Settings.current.spaceReplacement = state.spaceReplacement
     Settings.save()
 end
 
@@ -228,14 +250,14 @@ local function refreshCurrentList()
             -- Set options for Folder Items module before getting list
             if state.currentTab == "Folder Items" and module.setOptions then
                 module.setOptions({
-                    excludeTag = state.folderItemExcludeTag
+                    excludeTag = state.excludeTags
                 })
             end
             
             if module.getListWithSelection then
-                state.currentList = module.getListWithSelection(state.useSelectedOnly)
+                state.currentList = module.getListWithSelection(state.useSelectedOnly, state.excludeTags)
             else
-                state.currentList = module.getList()
+                state.currentList = module.getList(state.excludeTags)
             end
         end)
         if ok then
@@ -501,7 +523,7 @@ local function updatePreview()
                     separator = state.folderItemSeparator,
                     customPattern = state.folderItemCustomPattern,
                     autoIncrement = state.folderItemAutoIncrement,
-                    excludeTag = state.folderItemExcludeTag,
+                    excludeTag = state.excludeTags,
                     -- Add all transformation options for full pattern system
                     operation = state.operation,
                     findText = state.findText,
@@ -511,7 +533,8 @@ local function updatePreview()
                     useLuaPatterns = state.useLuaPatterns,
                     transformCase = state.transformCase,
                     prefix = state.prefix,
-                    suffix = state.suffix
+                    suffix = state.suffix,
+                    spaceReplacement = state.spaceReplacement
                 })
             elseif state.currentTab == "All" then
                 -- Pass all options for All tab
@@ -539,7 +562,8 @@ local function updatePreview()
                     separator = state.folderItemSeparator,
                     customPattern = state.folderItemCustomPattern,
                     folderItemAutoIncrement = state.folderItemAutoIncrement,
-                    excludeTag = state.folderItemExcludeTag
+                    excludeTag = state.excludeTags,
+                    spaceReplacement = state.spaceReplacement
                 })
             else
                 -- Pass options to updatePreview for other tabs
@@ -562,7 +586,8 @@ local function updatePreview()
                     numberSeparator = state.numberSeparator,
                     maxLength = state.maxLength,
                     addEllipsis = state.addEllipsis,
-                    autoIncrement = state.autoIncrement
+                    autoIncrement = state.autoIncrement,
+                    spaceReplacement = state.spaceReplacement
                 })
             end
         end)
@@ -949,11 +974,10 @@ local function loop()
         end
         
         -- PRESETS SECTION (Above tabs, available for all tabs)
-        reaper.ImGui_Text(ctx, "PRESETS")
         reaper.ImGui_Separator(ctx)
         
         -- Create a child window for presets to contain them properly
-        if reaper.ImGui_BeginChild(ctx, "PresetSection", -1, 40, reaper.ImGui_WindowFlags_None()) then
+        if reaper.ImGui_BeginChild(ctx, "PresetSection", -1, 45, reaper.ImGui_WindowFlags_None()) then
             local labelWidth = 100
             local controlPosX = labelWidth + 10
             
@@ -1034,6 +1058,27 @@ local function loop()
             end
             
             reaper.ImGui_EndChild(ctx)
+        end
+        
+        reaper.ImGui_Separator(ctx)
+        
+        -- GLOBAL SETTINGS SECTION
+        reaper.ImGui_Text(ctx, "Exclude Tags:")
+        reaper.ImGui_SameLine(ctx)
+        reaper.ImGui_SetNextItemWidth(ctx, 300)
+        local excludeChanged, newExclude = reaper.ImGui_InputText(ctx, "##ExcludeTags", state.excludeTags)
+        if excludeChanged then
+            state.excludeTags = newExclude
+            state.needsRefresh = true
+            Settings.current.excludeTags = state.excludeTags
+            Settings.save()
+        end
+        if reaper.ImGui_IsItemHovered(ctx) then
+            reaper.ImGui_BeginTooltip(ctx)
+            reaper.ImGui_Text(ctx, "Enter tags to exclude, separated by spaces")
+            reaper.ImGui_Text(ctx, "Items/Regions/Tracks starting with these tags will be excluded")
+            reaper.ImGui_Text(ctx, "Example: // # temp_")
+            reaper.ImGui_EndTooltip(ctx)
         end
         
         reaper.ImGui_Separator(ctx)
@@ -1138,8 +1183,7 @@ local function loop()
             
             -- FOLDER ITEMS SPECIFIC SECTION
             if state.currentTab == "Folder Items" then
-                reaper.ImGui_Text(ctx, "NAMING PATTERN")
-                reaper.ImGui_Separator(ctx)
+                --reaper.ImGui_Separator(ctx)
                 
                 -- Pattern dropdown
                 reaper.ImGui_Text(ctx, "Pattern:")
@@ -1219,19 +1263,7 @@ local function loop()
                 
                 -- Auto-increment option moved to general section
                 
-                -- Exclude tag option
-                reaper.ImGui_Text(ctx, "Exclude tag:")
-                reaper.ImGui_SameLine(ctx)
-                reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-                reaper.ImGui_SetNextItemWidth(ctx, 100)
-                local excludeTagChanged, newExcludeTag = reaper.ImGui_InputText(ctx, "##ExcludeTag", state.folderItemExcludeTag)
-                if excludeTagChanged then
-                    state.folderItemExcludeTag = newExcludeTag
-                    state.needsPreview = true
-                    saveFolderItemsSettings()
-                end
-              
-                reaper.ImGui_Separator(ctx)
+                -- reaper.ImGui_Separator(ctx)
                 
                 -- Auto-name button
                 if reaper.ImGui_Button(ctx, "Auto-Name") then
@@ -1277,8 +1309,8 @@ local function loop()
             end
 
             -- TRANSFORMATIONS SECTION (for ALL tabs including Folder Items)
-            reaper.ImGui_Text(ctx, "TRANSFORMATIONS")
-            reaper.ImGui_Separator(ctx)
+            -- reaper.ImGui_Text(ctx, "TRANSFORMATIONS")
+            -- reaper.ImGui_Separator(ctx)
             
             -- Find/Replace controls with pattern support
             reaper.ImGui_Text(ctx, "Find:")
@@ -1455,27 +1487,59 @@ local function loop()
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
             
+            -- Underscore button
+            local isActive_underscore = state.spaceReplacement == "_"
+            if isActive_underscore then
+                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x4CAF50FF)
+            end
             if reaper.ImGui_Button(ctx, "_") then
-                -- Replace spaces with underscores
-                state.findText = " "
-                state.replaceText = "_"
+                if state.spaceReplacement == "_" then
+                    state.spaceReplacement = ""  -- Toggle off
+                else
+                    state.spaceReplacement = "_"  -- Set to underscore
+                end
                 state.needsPreview = true
+            end
+            if isActive_underscore then
+                reaper.ImGui_PopStyleColor(ctx)
             end
             
             reaper.ImGui_SameLine(ctx)
+            
+            -- Dash button
+            local isActive_dash = state.spaceReplacement == "-"
+            if isActive_dash then
+                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x4CAF50FF)
+            end
             if reaper.ImGui_Button(ctx, "-") then
-                -- Replace spaces with dashes
-                state.findText = " "
-                state.replaceText = "-"
+                if state.spaceReplacement == "-" then
+                    state.spaceReplacement = ""  -- Toggle off
+                else
+                    state.spaceReplacement = "-"  -- Set to dash
+                end
                 state.needsPreview = true
+            end
+            if isActive_dash then
+                reaper.ImGui_PopStyleColor(ctx)
             end
             
             reaper.ImGui_SameLine(ctx)
+            
+            -- Remove button
+            local isActive_remove = state.spaceReplacement == "remove"
+            if isActive_remove then
+                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x4CAF50FF)
+            end
             if reaper.ImGui_Button(ctx, "Remove") then
-                -- Remove spaces
-                state.findText = " "
-                state.replaceText = ""
+                if state.spaceReplacement == "remove" then
+                    state.spaceReplacement = ""  -- Toggle off
+                else
+                    state.spaceReplacement = "remove"  -- Set to remove
+                end
                 state.needsPreview = true
+            end
+            if isActive_remove then
+                reaper.ImGui_PopStyleColor(ctx)
             end
             
             reaper.ImGui_Separator(ctx)

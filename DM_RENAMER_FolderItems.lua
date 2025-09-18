@@ -10,6 +10,19 @@ local Common = dofile(script_path .. "DM_RENAMER_Common.lua")
 -- Module-level storage for current options
 local currentOptions = {}
 
+-- Helper function to check if a name should be excluded
+local function isExcluded(name, excludeTags)
+    if not excludeTags or excludeTags == "" or not name then return false end
+    
+    -- Split tags by spaces and check each one
+    for tag in string.gmatch(excludeTags, "%S+") do
+        if name:sub(1, #tag) == tag then
+            return true
+        end
+    end
+    return false
+end
+
 -- Set current options (can be called before getting list)
 function FolderItems.setOptions(options)
     currentOptions = options or {}
@@ -66,7 +79,7 @@ function FolderItems.getRegionsAtPosition(position, length, excludeTag)
             -- Check if the item is within this region
             if position >= pos and position < rgnend then
                 -- Check if region should be excluded
-                if not (excludeTag and excludeTag ~= "" and name:sub(1, #excludeTag) == excludeTag) then
+                if not isExcluded(name, excludeTag) then
                     table.insert(allRegions, {
                         name = name,
                         pos = pos,
@@ -104,7 +117,7 @@ function FolderItems.getTrackHierarchy(track, excludeTag)
     local _, currentName = reaper.GetTrackName(track)
     
     -- Check if current track should be excluded
-    if excludeTag and excludeTag ~= "" and currentName:sub(1, #excludeTag) == excludeTag then
+    if isExcluded(currentName, excludeTag) then
         -- Skip this track but continue to parent
         local parentTrack = reaper.GetParentTrack(track)
         if parentTrack then
@@ -121,7 +134,7 @@ function FolderItems.getTrackHierarchy(track, excludeTag)
     local trackPath = {}
     
     -- Add current track name if not excluded
-    if not (excludeTag and excludeTag ~= "" and currentName:sub(1, #excludeTag) == excludeTag) then
+    if not isExcluded(currentName, excludeTag) then
         table.insert(trackPath, currentName)
     end
     
@@ -130,7 +143,7 @@ function FolderItems.getTrackHierarchy(track, excludeTag)
         if parentTrack then
             local _, parentName = reaper.GetTrackName(parentTrack)
             -- Only add if not excluded
-            if not (excludeTag and excludeTag ~= "" and parentName:sub(1, #excludeTag) == excludeTag) then
+            if not isExcluded(parentName, excludeTag) then
                 table.insert(trackPath, 1, parentName)  -- Insert at beginning
                 hierarchy.parent = parentName  -- The topmost non-excluded parent
             end
@@ -434,6 +447,17 @@ function FolderItems.updatePreview(itemList, pattern, options)
                 options.wholeWord,
                 options.useLuaPatterns
             )
+        end
+        
+        -- 2.5. Space replacement (independent of Find/Replace)
+        if options.spaceReplacement and options.spaceReplacement ~= "" then
+            if options.spaceReplacement == "remove" then
+                generatedName = generatedName:gsub("%s+", "")
+            elseif options.spaceReplacement == "_" then
+                generatedName = generatedName:gsub("%s+", "_")
+            elseif options.spaceReplacement == "-" then
+                generatedName = generatedName:gsub("%s+", "-")
+            end
         end
         
         -- 3. Prefix/Suffix

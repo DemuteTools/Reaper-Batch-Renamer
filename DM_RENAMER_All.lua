@@ -12,11 +12,11 @@ local Markers = dofile(script_path .. "DM_RENAMER_Markers.lua")
 local Tracks = dofile(script_path .. "DM_RENAMER_Tracks.lua")
 local FolderItems = dofile(script_path .. "DM_RENAMER_FolderItems.lua")
 
-function All.getList()
+function All.getList(excludeTags)
     local allItems = {}
 
     -- Get all media items (excluding folder items)
-    local items = Items.getList()
+    local items = Items.getList(excludeTags)
     for _, item in ipairs(items) do
         item.type = "Media Item"
         item.sortName = item.name
@@ -25,7 +25,7 @@ function All.getList()
     end
 
     -- Get all folder items
-    local folderItems = FolderItems.getList()
+    local folderItems = FolderItems.getList(excludeTags)
     for _, item in ipairs(folderItems) do
         item.type = "Folder Item"
         item.sortName = item.name
@@ -34,7 +34,7 @@ function All.getList()
     end
 
     -- Get all regions
-    local regions = Regions.getList()
+    local regions = Regions.getList(excludeTags)
     for _, region in ipairs(regions) do
         region.type = "Region"
         region.sortName = region.name
@@ -43,7 +43,7 @@ function All.getList()
     end
 
     -- Get all markers
-    local markers = Markers.getList()
+    local markers = Markers.getList(excludeTags)
     for _, marker in ipairs(markers) do
         marker.type = "Marker"
         marker.sortName = marker.name
@@ -52,7 +52,7 @@ function All.getList()
     end
 
     -- Get all tracks
-    local tracks = Tracks.getList()
+    local tracks = Tracks.getList(excludeTags)
     for _, track in ipairs(tracks) do
         track.type = "Track"
         track.sortName = track.name
@@ -63,11 +63,11 @@ function All.getList()
     return allItems
 end
 
-function All.getListWithSelection(selectedOnly)
+function All.getListWithSelection(selectedOnly, excludeTags)
     local allItems = {}
 
     -- Get media items with selection
-    local items = Items.getListWithSelection(selectedOnly)
+    local items = Items.getListWithSelection(selectedOnly, excludeTags)
     for _, item in ipairs(items) do
         item.type = "Media Item"
         item.sortName = item.name
@@ -76,7 +76,7 @@ function All.getListWithSelection(selectedOnly)
     end
 
     -- Get folder items with selection
-    local folderItems = FolderItems.getListWithSelection(selectedOnly)
+    local folderItems = FolderItems.getListWithSelection(selectedOnly, excludeTags)
     for _, item in ipairs(folderItems) do
         item.type = "Folder Item"
         item.sortName = item.name
@@ -84,7 +84,7 @@ function All.getListWithSelection(selectedOnly)
     end
 
     -- Get regions with selection
-    local regions = Regions.getListWithSelection(selectedOnly)
+    local regions = Regions.getListWithSelection(selectedOnly, excludeTags)
     for _, region in ipairs(regions) do
         region.type = "Region"
         region.sortName = region.name
@@ -93,7 +93,7 @@ function All.getListWithSelection(selectedOnly)
     end
 
     -- Get markers with selection
-    local markers = Markers.getListWithSelection(selectedOnly)
+    local markers = Markers.getListWithSelection(selectedOnly, excludeTags)
     for _, marker in ipairs(markers) do
         marker.type = "Marker"
         marker.sortName = marker.name
@@ -102,7 +102,7 @@ function All.getListWithSelection(selectedOnly)
     end
 
     -- Get tracks with selection
-    local tracks = Tracks.getListWithSelection(selectedOnly)
+    local tracks = Tracks.getListWithSelection(selectedOnly, excludeTags)
     for _, track in ipairs(tracks) do
         track.type = "Track"
         track.sortName = track.name
@@ -141,6 +141,18 @@ function All.updatePreview(list, findText, replaceText, options)
             for _, item in ipairs(itemsByType["Folder Item"]) do
                 local preview = item.name or item.notes or ""
                 preview = Common.applyTransformation(preview, findText, replaceText, options)
+                
+                -- Apply space replacement if configured
+                if options.spaceReplacement and options.spaceReplacement ~= "" then
+                    if options.spaceReplacement == "remove" then
+                        preview = preview:gsub("%s+", "")
+                    elseif options.spaceReplacement == "_" then
+                        preview = preview:gsub("%s+", "_")
+                    elseif options.spaceReplacement == "-" then
+                        preview = preview:gsub("%s+", "-")
+                    end
+                end
+                
                 item.preview = preview
                 item.changed = preview ~= (item.name or item.notes or "")
             end

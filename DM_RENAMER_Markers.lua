@@ -7,6 +7,19 @@ local Markers = {}
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
 local Common = dofile(script_path .. "DM_RENAMER_Common.lua")
 
+-- Helper function to check if a name should be excluded
+local function isExcluded(name, excludeTags)
+    if not excludeTags or excludeTags == "" or not name then return false end
+    
+    -- Split tags by spaces and check each one
+    for tag in string.gmatch(excludeTags, "%S+") do
+        if name:sub(1, #tag) == tag then
+            return true
+        end
+    end
+    return false
+end
+
 -- Structure for marker data
 local function createMarkerData(idx, isRegion, pos, rgnend, name, markrgnindexnumber, color)
     if isRegion then
@@ -29,7 +42,7 @@ local function createMarkerData(idx, isRegion, pos, rgnend, name, markrgnindexnu
 end
 
 -- Get all markers in project
-function Markers.getMarkerList()
+function Markers.getMarkerList(excludeTags)
     local markers = {}
     local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
     
@@ -37,9 +50,12 @@ function Markers.getMarkerList()
         local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
         
         if not isRegion then
-            local markerData = createMarkerData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
-            if markerData then
-                table.insert(markers, markerData)
+            -- Check if marker should be excluded
+            if not isExcluded(name, excludeTags) then
+                local markerData = createMarkerData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+                if markerData then
+                    table.insert(markers, markerData)
+                end
             end
         end
     end
@@ -72,7 +88,7 @@ function Markers.getMarkersAtCursor()
 end
 
 -- Get markers in time selection
-function Markers.getMarkersInTimeSelection()
+function Markers.getMarkersInTimeSelection(excludeTags)
     local startTime, endTime = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
     if startTime == endTime then
         return {}  -- No time selection
@@ -99,7 +115,7 @@ function Markers.getMarkersInTimeSelection()
 end
 
 -- Get truly selected markers (using ExtState tracking)
-function Markers.getSelectedMarkersList()
+function Markers.getSelectedMarkersList(excludeTags)
     local markers = {}
     local _, num_markers, num_regions = reaper.CountProjectMarkers(0)
     
@@ -117,9 +133,12 @@ function Markers.getSelectedMarkersList()
         local _, isRegion, pos, rgnend, name, markrgnindexnumber, color = reaper.EnumProjectMarkers3(0, i)
         
         if not isRegion and selectedIndices[markrgnindexnumber] then
-            local markerData = createMarkerData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
-            if markerData then
-                table.insert(markers, markerData)
+            -- Check if marker should be excluded
+            if not isExcluded(name, excludeTags) then
+                local markerData = createMarkerData(i, isRegion, pos, rgnend, name, markrgnindexnumber, color)
+                if markerData then
+                    table.insert(markers, markerData)
+                end
             end
         end
     end
@@ -653,14 +672,14 @@ end
 
 
 -- Wrapper functions for main interface compatibility
-function Markers.getList()
-    return Markers.getMarkerList()
+function Markers.getList(excludeTags)
+    return Markers.getMarkerList(excludeTags)
 end
 
-function Markers.getListWithSelection(selectedOnly)
+function Markers.getListWithSelection(selectedOnly, excludeTags)
     if selectedOnly then
         -- Check for selected markers via ExtState
-        local selectedMarkers = Markers.getSelectedMarkersList()
+        local selectedMarkers = Markers.getSelectedMarkersList(excludeTags)
         if #selectedMarkers > 0 then
             return selectedMarkers
         end
@@ -668,10 +687,10 @@ function Markers.getListWithSelection(selectedOnly)
         -- Fallback to time selection only
         local start_time, end_time = reaper.GetSet_LoopTimeRange(false, false, 0, 0, false)
         if end_time - start_time > 0 then
-            return Markers.getMarkersInTimeSelection()
+            return Markers.getMarkersInTimeSelection(excludeTags)
         end
     end
-    return Markers.getMarkerList()
+    return Markers.getMarkerList(excludeTags)
 end
 
 function Markers.updatePreview(markerList, findText, replaceText, options)
@@ -727,6 +746,17 @@ function Markers.updatePreview(markerList, findText, replaceText, options)
                         options.useLuaPatterns
                     )
                 end
+            end
+        end
+        
+        -- Priority 3.5: Space replacement (independent of Find/Replace)
+        if options.spaceReplacement and options.spaceReplacement ~= "" then
+            if options.spaceReplacement == "remove" then
+                newName = newName:gsub("%s+", "")
+            elseif options.spaceReplacement == "_" then
+                newName = newName:gsub("%s+", "_")
+            elseif options.spaceReplacement == "-" then
+                newName = newName:gsub("%s+", "-")
             end
         end
         
