@@ -90,6 +90,30 @@ function Settings.getDefaultSettings()
             customPattern = "{region}_{track}",
             autoIncrement = true,
             excludeTag = "//"
+        },
+        
+        -- UI Appearance settings
+        appearance = {
+            -- Colors (in 0xRRGGBBAA format)
+            buttonColor = 0x5D5D5DFF,         -- Default gray buttons
+            buttonHoverColor = 0x7D7D7DFF,   -- Lighter gray on hover
+            backgroundColor = 0x2E2E2EFF,     -- Dark gray background
+            frameColor = 0x3A3A3AFF,          -- Frame background color
+            textColor = 0xD5D5D5FF,           -- Light gray text
+            highlightColor = 0x4CAF50FF,      -- Green highlight
+            headerColor = 0x454545FF,         -- Table header color
+            
+            -- Style settings
+            uiRounding = 4.0,                 -- Corner rounding (0-12)
+            frameRounding = 3.0,              -- Frame rounding
+            itemSpacing = 8.0,                -- Space between items
+            windowPadding = 10.0,             -- Window padding
+            
+            -- Scale/Zoom settings
+            uiScale = 1.0,                    -- Global UI scale (0.5-2.0)
+            fontSize = 14,                    -- Base font size
+            useCustomFont = false,            -- Enable custom font
+            customFontPath = ""               -- Path to custom font file
         }
     }
 end
@@ -406,7 +430,91 @@ function Settings.importFromFile(filename)
     end
 end
 
+-- Update appearance option
+function Settings.setAppearanceOption(option, value)
+    if Settings.current.appearance[option] ~= nil then
+        Settings.current.appearance[option] = value
+        Settings.save()
+    end
+end
+
+-- Get appearance option
+function Settings.getAppearanceOption(option)
+    return Settings.current.appearance[option]
+end
+
+-- Get all appearance settings
+function Settings.getAppearanceSettings()
+    return Settings.current.appearance
+end
+
+-- Convert hex color (0xRRGGBBAA) to RGBA components (0-1 for ImGui)
+function Settings.colorToRGBA(color)
+    -- Convert string to number if necessary
+    if type(color) == "string" then
+        color = tonumber(color)
+    end
+    -- Check that the color is a number
+    if type(color) ~= "number" then
+        -- Default value in case of error (opaque white)
+        return 1, 1, 1, 1
+    end
+    -- Extract components using bitwise operations
+    local r = (color >> 24) & 0xFF
+    local g = (color >> 16) & 0xFF
+    local b = (color >> 8) & 0xFF
+    local a = color & 0xFF
+    return r/255, g/255, b/255, a/255
+end
+
+-- Convert RGBA components (0-1) to hex color (0xRRGGBBAA)
+function Settings.rgbaToColor(r, g, b, a)
+    r = math.floor(r * 255)
+    g = math.floor(g * 255)
+    b = math.floor(b * 255)
+    a = math.floor((a or 1) * 255)
+    return (r << 24) | (g << 16) | (b << 8) | a
+end
+
+-- Ensure appearance settings exist (for backwards compatibility)
+function Settings.ensureAppearanceSettings()
+    if not Settings.current.appearance then
+        Settings.current.appearance = {
+            -- Colors (in 0xRRGGBBAA format)
+            buttonColor = 0x5D5D5DFF,         -- Default gray buttons
+            buttonHoverColor = 0x7D7D7DFF,   -- Lighter gray on hover
+            backgroundColor = 0x2E2E2EFF,     -- Dark gray background
+            frameColor = 0x3A3A3AFF,          -- Frame background color
+            textColor = 0xD5D5D5FF,           -- Light gray text
+            highlightColor = 0x4CAF50FF,      -- Green highlight
+            headerColor = 0x454545FF,         -- Table header color
+            
+            -- Style settings
+            uiRounding = 4.0,                 -- Corner rounding (0-12)
+            frameRounding = 3.0,              -- Frame rounding
+            itemSpacing = 8.0,                -- Space between items
+            windowPadding = 10.0,             -- Window padding
+            
+            -- Scale/Zoom settings
+            uiScale = 1.0,                    -- Global UI scale (0.5-2.0)
+            fontSize = 14,                    -- Base font size
+            useCustomFont = false,            -- Enable custom font
+            customFontPath = ""               -- Path to custom font file
+        }
+        Settings.save()
+    else
+        -- Ensure all fields exist
+        local defaults = Settings.getDefaultSettings().appearance
+        for k, v in pairs(defaults) do
+            if Settings.current.appearance[k] == nil then
+                Settings.current.appearance[k] = v
+            end
+        end
+    end
+end
+
 -- Initialize settings on module load
 Settings.load()
+Settings.ensureAppearanceSettings()
 
 return Settings

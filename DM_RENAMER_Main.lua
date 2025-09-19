@@ -12,9 +12,13 @@ local Tracks = dofile(script_path .. "DM_RENAMER_Tracks.lua")
 local FolderItems = dofile(script_path .. "DM_RENAMER_FolderItems.lua")
 local All = dofile(script_path .. "DM_RENAMER_All.lua")
 local Presets = dofile(script_path .. "DM_RENAMER_Presets.lua")
+local SettingsUI = dofile(script_path .. "DM_RENAMER_Settings_UI.lua")
 
 -- Initialize ReaImGui
 local ctx = reaper.ImGui_CreateContext('DM RENAMER')
+
+-- Initialize SettingsUI module
+SettingsUI.init(Settings, ctx)
 
 -- State management
 local state = {
@@ -146,7 +150,9 @@ local state = {
     presetName = "",
     showPresetDialog = false,
     -- Manual sorting state (for ReaImGui)
-    lastSortColumn = -1
+    lastSortColumn = -1,
+    -- Settings window state
+    showSettingsWindow = false
 }
 
 -- Helper function to check if a name should be excluded
@@ -956,11 +962,48 @@ local function loop()
     -- Track region/marker selection before ImGui processing
     trackRegionMarkerSelection()
     
+    -- Apply appearance settings
+    local appearance = Settings.getAppearanceSettings()
+    
+    -- Apply colors
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_WindowBg(), appearance.backgroundColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), appearance.frameColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), appearance.buttonColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), appearance.buttonHoverColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), appearance.highlightColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), appearance.textColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Header(), appearance.headerColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(), appearance.highlightColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderActive(), appearance.highlightColor)
+    
+    -- Apply style variables
+    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameRounding(), appearance.frameRounding)
+    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowRounding(), appearance.uiRounding)
+    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ItemSpacing(), appearance.itemSpacing, appearance.itemSpacing)
+    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding(), appearance.windowPadding, appearance.windowPadding)
+    
     local visible, open = reaper.ImGui_Begin(ctx, 'DM RENAMER', true)
     
     if visible then
+        -- Note: UI scaling through font is not directly available in ReaImGui
+        -- Scale factor is stored but not applied visually at this time
+        -- TODO: Implement manual UI element scaling or wait for API support
+        
+        -- Check for keyboard shortcuts
+        if reaper.ImGui_IsKeyDown(ctx, reaper.ImGui_Key_LeftCtrl()) or 
+           reaper.ImGui_IsKeyDown(ctx, reaper.ImGui_Key_RightCtrl()) then
+            if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Comma()) then
+                state.showSettingsWindow = true
+            end
+        end
+        
         -- Draw pattern help window if open
         drawPatternHelpWindow()
+        
+        -- Handle Settings window if open
+        if state.showSettingsWindow then
+            state.showSettingsWindow = SettingsUI.showSettingsWindow(state.showSettingsWindow)
+        end
         
         -- Menu bar
         if reaper.ImGui_BeginMenuBar(ctx) then
@@ -970,6 +1013,36 @@ local function loop()
                 end
                 reaper.ImGui_EndMenu(ctx)
             end
+            
+            if reaper.ImGui_BeginMenu(ctx, "Settings") then
+                if reaper.ImGui_MenuItem(ctx, "Appearance Settings...", "Ctrl+,") then
+                    state.showSettingsWindow = true
+                end
+                reaper.ImGui_Separator(ctx)
+                if reaper.ImGui_MenuItem(ctx, "Reset to Defaults") then
+                    -- Reset appearance to defaults
+                    local defaults = {
+                        buttonColor = 0x5D5D5DFF,
+                        buttonHoverColor = 0x7D7D7DFF,
+                        backgroundColor = 0x2E2E2EFF,
+                        frameColor = 0x3A3A3AFF,
+                        textColor = 0xD5D5D5FF,
+                        highlightColor = 0x4CAF50FF,
+                        headerColor = 0x454545FF,
+                        uiRounding = 4.0,
+                        frameRounding = 3.0,
+                        itemSpacing = 8.0,
+                        windowPadding = 10.0,
+                        uiScale = 1.0,
+                        fontSize = 14
+                    }
+                    for k, v in pairs(defaults) do
+                        Settings.setAppearanceOption(k, v)
+                    end
+                end
+                reaper.ImGui_EndMenu(ctx)
+            end
+            
             reaper.ImGui_EndMenuBar(ctx)
         end
         
@@ -977,7 +1050,7 @@ local function loop()
         reaper.ImGui_Separator(ctx)
         
         -- Create a child window for presets to contain them properly
-        if reaper.ImGui_BeginChild(ctx, "PresetSection", -1, 45, reaper.ImGui_WindowFlags_None()) then
+        if reaper.ImGui_BeginChild(ctx, "PresetSection", -1, 50, reaper.ImGui_WindowFlags_None()) then
             local labelWidth = 100
             local controlPosX = labelWidth + 10
             
@@ -1303,6 +1376,11 @@ local function loop()
                 reaper.ImGui_SameLine(ctx)
                 if reaper.ImGui_Button(ctx, "Refresh List") then
                     state.needsRefresh = true
+                end
+                
+                reaper.ImGui_SameLine(ctx)
+                if reaper.ImGui_Button(ctx, "Settings") then
+                    state.showSettingsWindow = true
                 end
 
                 reaper.ImGui_Separator(ctx)
@@ -2111,6 +2189,10 @@ local function loop()
     if state.needsPreview then
         updatePreview()
     end
+    
+    -- Pop all style colors and variables
+    reaper.ImGui_PopStyleColor(ctx, 9)  -- We pushed 9 colors
+    reaper.ImGui_PopStyleVar(ctx, 4)    -- We pushed 4 style variables
     
     if open then
         reaper.defer(loop)

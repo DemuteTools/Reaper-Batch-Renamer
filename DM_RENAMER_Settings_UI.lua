@@ -1,0 +1,409 @@
+-- DM RENAMER - Settings UI Module
+-- Handles the user interface for settings configuration
+
+local SettingsUI = {}
+
+-- Module dependencies (will be set by init)
+local Settings = nil
+local ctx = nil
+local reaper = reaper
+
+-- Temporary variables for sliders (avoids constant saves)
+local tempSettings = {}
+local originalSettings = {}
+local settingsWindowOpen = false
+
+-- Initialize the module
+function SettingsUI.init(settingsModule, imguiContext)
+    Settings = settingsModule
+    ctx = imguiContext
+end
+
+-- Initialize temporary settings if necessary
+local function initTempSettings()
+    if not tempSettings.initialized then
+        -- Load current settings and create temp copies
+        local appearance = Settings.getAppearanceSettings()
+        
+        -- Save original values
+        originalSettings = {}
+        for k, v in pairs(appearance) do
+            originalSettings[k] = v
+            tempSettings[k] = v
+        end
+        
+        tempSettings.initialized = true
+    end
+end
+
+-- Reset temporary settings
+local function resetTempSettings()
+    tempSettings = {}
+    originalSettings = {}
+end
+
+-- Restore original settings (for Cancel)
+local function restoreOriginalSettings()
+    if originalSettings then
+        for k, v in pairs(originalSettings) do
+            Settings.setAppearanceOption(k, v)
+        end
+    end
+end
+
+-- Apply all temporary changes to the real settings
+local function applyTempSettings()
+    for k, v in pairs(tempSettings) do
+        if k ~= "initialized" then
+            Settings.setAppearanceOption(k, v)
+        end
+    end
+    Settings.save()
+end
+
+-- Color picker helper
+local function colorPicker(label, tempKey)
+    local currentColor = tempSettings[tempKey]
+    local rv, newColor = reaper.ImGui_ColorEdit4(ctx, label, currentColor, 
+        reaper.ImGui_ColorEditFlags_AlphaBar() | 
+        reaper.ImGui_ColorEditFlags_AlphaPreviewHalf())
+    
+    if rv then
+        tempSettings[tempKey] = newColor
+        -- Apply immediately for live preview
+        Settings.setAppearanceOption(tempKey, newColor)
+        return true
+    end
+    return false
+end
+
+-- Show appearance settings section
+local function showAppearanceSettings()
+    reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Color Settings")
+    reaper.ImGui_Separator(ctx)
+    
+    -- Color pickers in a nice layout
+    reaper.ImGui_Columns(ctx, 2, nil, false)
+    
+    -- Left column
+    colorPicker("Button Color", "buttonColor")
+    colorPicker("Background Color", "backgroundColor")
+    colorPicker("Text Color", "textColor")
+    colorPicker("Frame Color", "frameColor")
+    
+    reaper.ImGui_NextColumn(ctx)
+    
+    -- Right column
+    colorPicker("Button Hover Color", "buttonHoverColor")
+    colorPicker("Highlight Color", "highlightColor")
+    colorPicker("Header Color", "headerColor")
+    
+    reaper.ImGui_Columns(ctx, 1)
+    
+    reaper.ImGui_Separator(ctx)
+    reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Style Settings")
+    reaper.ImGui_Separator(ctx)
+    
+    -- UI Rounding slider
+    reaper.ImGui_PushItemWidth(ctx, 200)
+    local rv, newRounding = reaper.ImGui_SliderDouble(ctx, "UI Rounding", 
+        tempSettings.uiRounding, 0.0, 12.0, "%.1f")
+    if rv and newRounding ~= tempSettings.uiRounding then
+        tempSettings.uiRounding = newRounding
+        Settings.setAppearanceOption("uiRounding", newRounding)
+    end
+    
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_IsItemHovered(ctx) then
+        reaper.ImGui_SetTooltip(ctx, 
+            "Controls the roundness of UI elements like buttons and frames.\n" ..
+            "Higher values create more rounded corners.")
+    end
+    
+    -- Frame Rounding slider
+    local rv, newFrameRounding = reaper.ImGui_SliderDouble(ctx, "Frame Rounding", 
+        tempSettings.frameRounding, 0.0, 12.0, "%.1f")
+    if rv and newFrameRounding ~= tempSettings.frameRounding then
+        tempSettings.frameRounding = newFrameRounding
+        Settings.setAppearanceOption("frameRounding", newFrameRounding)
+    end
+    
+    -- Item Spacing slider
+    local rv, newSpacing = reaper.ImGui_SliderDouble(ctx, "Item Spacing", 
+        tempSettings.itemSpacing, 0, 20, "%.1f")
+    if rv and newSpacing ~= tempSettings.itemSpacing then
+        tempSettings.itemSpacing = newSpacing
+        Settings.setAppearanceOption("itemSpacing", newSpacing)
+    end
+    
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_IsItemHovered(ctx) then
+        reaper.ImGui_SetTooltip(ctx, "Controls the space between UI elements.")
+    end
+    
+    -- Window Padding slider
+    local rv, newPadding = reaper.ImGui_SliderDouble(ctx, "Window Padding", 
+        tempSettings.windowPadding, 0, 20, "%.1f")
+    if rv and newPadding ~= tempSettings.windowPadding then
+        tempSettings.windowPadding = newPadding
+        Settings.setAppearanceOption("windowPadding", newPadding)
+    end
+    
+    reaper.ImGui_PopItemWidth(ctx)
+end
+
+-- Show scale/zoom settings section
+local function showScaleSettings()
+    reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Scale / Zoom Settings")
+    reaper.ImGui_Separator(ctx)
+    
+    -- UI Scale slider
+    reaper.ImGui_PushItemWidth(ctx, 250)
+    -- Display scale as percentage (multiply by 100 for display)
+    local displayScale = tempSettings.uiScale * 100
+    local rv, newDisplayScale = reaper.ImGui_SliderDouble(ctx, "UI Scale", 
+        displayScale, 50, 200, "%.0f%%", 
+        reaper.ImGui_SliderFlags_AlwaysClamp())
+    
+    if rv then
+        local newScale = newDisplayScale / 100  -- Convert percentage back to decimal
+        if newScale ~= tempSettings.uiScale then
+            tempSettings.uiScale = newScale
+            Settings.setAppearanceOption("uiScale", newScale)
+        end
+    end
+    
+    -- Quick scale buttons
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_Button(ctx, "50%") then
+        tempSettings.uiScale = 0.5
+        Settings.setAppearanceOption("uiScale", 0.5)
+    end
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_Button(ctx, "75%") then
+        tempSettings.uiScale = 0.75
+        Settings.setAppearanceOption("uiScale", 0.75)
+    end
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_Button(ctx, "100%") then
+        tempSettings.uiScale = 1.0
+        Settings.setAppearanceOption("uiScale", 1.0)
+    end
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_Button(ctx, "125%") then
+        tempSettings.uiScale = 1.25
+        Settings.setAppearanceOption("uiScale", 1.25)
+    end
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_Button(ctx, "150%") then
+        tempSettings.uiScale = 1.5
+        Settings.setAppearanceOption("uiScale", 1.5)
+    end
+    
+    -- Font size slider
+    local rv, newFontSize = reaper.ImGui_SliderInt(ctx, "Font Size", 
+        tempSettings.fontSize, 10, 24, "%d px")
+    if rv and newFontSize ~= tempSettings.fontSize then
+        tempSettings.fontSize = newFontSize
+        Settings.setAppearanceOption("fontSize", newFontSize)
+    end
+    
+    reaper.ImGui_PopItemWidth(ctx)
+    
+    -- Note about font changes
+    reaper.ImGui_TextColored(ctx, 0xAAAA00FF, 
+        "Note: Font size changes require restarting the script to take effect.")
+end
+
+-- Show presets section
+local function showPresetsSection()
+    reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Appearance Presets")
+    reaper.ImGui_Separator(ctx)
+    
+    -- Preset buttons
+    if reaper.ImGui_Button(ctx, "Dark Theme", 120, 0) then
+        tempSettings.backgroundColor = 0x2E2E2EFF
+        tempSettings.frameColor = 0x3A3A3AFF
+        tempSettings.textColor = 0xD5D5D5FF
+        tempSettings.buttonColor = 0x5D5D5DFF
+        tempSettings.buttonHoverColor = 0x7D7D7DFF
+        tempSettings.highlightColor = 0x4CAF50FF
+        tempSettings.headerColor = 0x454545FF
+        
+        -- Apply immediately
+        for k, v in pairs(tempSettings) do
+            if k ~= "initialized" then
+                Settings.setAppearanceOption(k, v)
+            end
+        end
+    end
+    
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_Button(ctx, "Light Theme", 120, 0) then
+        tempSettings.backgroundColor = 0xF5F5F5FF
+        tempSettings.frameColor = 0xE0E0E0FF
+        tempSettings.textColor = 0x2A2A2AFF
+        tempSettings.buttonColor = 0xD0D0D0FF
+        tempSettings.buttonHoverColor = 0xC0C0C0FF
+        tempSettings.highlightColor = 0x4CAF50FF
+        tempSettings.headerColor = 0xE5E5E5FF
+        
+        -- Apply immediately
+        for k, v in pairs(tempSettings) do
+            if k ~= "initialized" then
+                Settings.setAppearanceOption(k, v)
+            end
+        end
+    end
+    
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_Button(ctx, "High Contrast", 120, 0) then
+        tempSettings.backgroundColor = 0x000000FF
+        tempSettings.frameColor = 0x202020FF
+        tempSettings.textColor = 0xFFFFFFFF
+        tempSettings.buttonColor = 0x404040FF
+        tempSettings.buttonHoverColor = 0x606060FF
+        tempSettings.highlightColor = 0x00FF00FF
+        tempSettings.headerColor = 0x303030FF
+        
+        -- Apply immediately
+        for k, v in pairs(tempSettings) do
+            if k ~= "initialized" then
+                Settings.setAppearanceOption(k, v)
+            end
+        end
+    end
+    
+    reaper.ImGui_SameLine(ctx)
+    if reaper.ImGui_Button(ctx, "Blue Theme", 120, 0) then
+        tempSettings.backgroundColor = 0x1E3A5FFF
+        tempSettings.frameColor = 0x2A4E7CFF
+        tempSettings.textColor = 0xE8F0FFFF
+        tempSettings.buttonColor = 0x3A5F8AFF
+        tempSettings.buttonHoverColor = 0x4A6F9AFF
+        tempSettings.highlightColor = 0x64B5F6FF
+        tempSettings.headerColor = 0x2D5080FF
+        
+        -- Apply immediately
+        for k, v in pairs(tempSettings) do
+            if k ~= "initialized" then
+                Settings.setAppearanceOption(k, v)
+            end
+        end
+    end
+end
+
+-- Main settings window function
+function SettingsUI.showSettingsWindow(open)
+    if not ctx then
+        return false
+    end
+    
+    -- Initialize temporary variables
+    initTempSettings()
+    
+    local windowFlags = reaper.ImGui_WindowFlags_NoResize() | 
+                       reaper.ImGui_WindowFlags_AlwaysAutoResize()
+    
+    reaper.ImGui_SetNextWindowSize(ctx, 650, 550, reaper.ImGui_Cond_FirstUseEver())
+    
+    local visible, open = reaper.ImGui_Begin(ctx, 'DM RENAMER Settings', open, windowFlags)
+    
+    if visible then
+        -- Create tabs for different sections
+        if reaper.ImGui_BeginTabBar(ctx, "SettingsTabs") then
+            
+            -- Appearance Tab
+            if reaper.ImGui_BeginTabItem(ctx, "Appearance") then
+                showAppearanceSettings()
+                reaper.ImGui_EndTabItem(ctx)
+            end
+            
+            -- Scale Tab
+            if reaper.ImGui_BeginTabItem(ctx, "Scale / Zoom") then
+                showScaleSettings()
+                reaper.ImGui_EndTabItem(ctx)
+            end
+            
+            -- Presets Tab
+            if reaper.ImGui_BeginTabItem(ctx, "Presets") then
+                showPresetsSection()
+                reaper.ImGui_EndTabItem(ctx)
+            end
+            
+            reaper.ImGui_EndTabBar(ctx)
+        end
+        
+        reaper.ImGui_Separator(ctx)
+        
+        -- Control buttons at the bottom
+        local buttonWidth = 120
+        local totalWidth = buttonWidth * 4 + 10 * 3  -- 4 buttons with spacing
+        local availWidth = reaper.ImGui_GetContentRegionAvail(ctx)
+        local startX = (availWidth - totalWidth) / 2
+        
+        if startX > 0 then
+            reaper.ImGui_Dummy(ctx, startX, 0)
+            reaper.ImGui_SameLine(ctx)
+        end
+        
+        if reaper.ImGui_Button(ctx, "Save & Close", buttonWidth, 0) then
+            applyTempSettings()
+            resetTempSettings()
+            open = false
+        end
+        
+        reaper.ImGui_SameLine(ctx)
+        if reaper.ImGui_Button(ctx, "Apply", buttonWidth, 0) then
+            applyTempSettings()
+        end
+        
+        reaper.ImGui_SameLine(ctx)
+        if reaper.ImGui_Button(ctx, "Cancel", buttonWidth, 0) then
+            restoreOriginalSettings()
+            resetTempSettings()
+            open = false
+        end
+        
+        reaper.ImGui_SameLine(ctx)
+        if reaper.ImGui_Button(ctx, "Reset Defaults", buttonWidth, 0) then
+            -- Reset to default values
+            tempSettings.backgroundColor = 0x2E2E2EFF
+            tempSettings.frameColor = 0x3A3A3AFF
+            tempSettings.textColor = 0xD5D5D5FF
+            tempSettings.buttonColor = 0x5D5D5DFF
+            tempSettings.buttonHoverColor = 0x7D7D7DFF
+            tempSettings.highlightColor = 0x4CAF50FF
+            tempSettings.headerColor = 0x454545FF
+            tempSettings.uiRounding = 4.0
+            tempSettings.frameRounding = 3.0
+            tempSettings.itemSpacing = 8.0
+            tempSettings.windowPadding = 10.0
+            tempSettings.uiScale = 1.0
+            tempSettings.fontSize = 14
+            
+            -- Apply immediately for preview
+            for k, v in pairs(tempSettings) do
+                if k ~= "initialized" then
+                    Settings.setAppearanceOption(k, v)
+                end
+            end
+        end
+        
+        reaper.ImGui_End(ctx)
+    end
+    
+    return open
+end
+
+-- Check if settings window is open
+function SettingsUI.isOpen()
+    return settingsWindowOpen
+end
+
+-- Set settings window state
+function SettingsUI.setOpen(open)
+    settingsWindowOpen = open
+end
+
+return SettingsUI
