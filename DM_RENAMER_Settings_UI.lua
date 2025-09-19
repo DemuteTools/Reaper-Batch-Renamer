@@ -82,23 +82,34 @@ local function showAppearanceSettings()
     reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Color Settings")
     reaper.ImGui_Separator(ctx)
     
-    -- Color pickers in a nice layout
-    reaper.ImGui_Columns(ctx, 2, nil, false)
+    -- Color pickers in two-column layout using manual positioning
+    local itemWidth = 280  -- Width for each color picker
     
-    -- Left column
+    -- Row 1
+    reaper.ImGui_PushItemWidth(ctx, itemWidth)
     colorPicker("Button Color", "buttonColor")
-    colorPicker("Background Color", "backgroundColor")
-    colorPicker("Text Color", "textColor")
-    colorPicker("Frame Color", "frameColor")
-    
-    reaper.ImGui_NextColumn(ctx)
-    
-    -- Right column
+    reaper.ImGui_SameLine(ctx, itemWidth + 50)
     colorPicker("Button Hover Color", "buttonHoverColor")
-    colorPicker("Highlight Color", "highlightColor")
-    colorPicker("Header Color", "headerColor")
+    reaper.ImGui_PopItemWidth(ctx)
     
-    reaper.ImGui_Columns(ctx, 1)
+    -- Row 2
+    reaper.ImGui_PushItemWidth(ctx, itemWidth)
+    colorPicker("Background Color", "backgroundColor")
+    reaper.ImGui_SameLine(ctx, itemWidth + 50)
+    colorPicker("Highlight Color", "highlightColor")
+    reaper.ImGui_PopItemWidth(ctx)
+    
+    -- Row 3
+    reaper.ImGui_PushItemWidth(ctx, itemWidth)
+    colorPicker("Text Color", "textColor")
+    reaper.ImGui_SameLine(ctx, itemWidth + 50)
+    colorPicker("Header Color", "headerColor")
+    reaper.ImGui_PopItemWidth(ctx)
+    
+    -- Row 4
+    reaper.ImGui_PushItemWidth(ctx, itemWidth)
+    colorPicker("Frame Color", "frameColor")
+    reaper.ImGui_PopItemWidth(ctx)
     
     reaper.ImGui_Separator(ctx)
     reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Style Settings")

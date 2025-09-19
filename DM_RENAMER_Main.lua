@@ -1130,6 +1130,22 @@ local function loop()
                 end
             end
             
+            -- Settings button (aligned to the right, visible for all tabs)
+            reaper.ImGui_SameLine(ctx)
+            local availWidth = reaper.ImGui_GetContentRegionAvail(ctx)
+            if availWidth > 100 then
+                -- Align to the right with some padding
+                reaper.ImGui_SetCursorPosX(ctx, reaper.ImGui_GetCursorPosX(ctx) + availWidth - 85)
+            end
+            if reaper.ImGui_Button(ctx, "Settings ⚙") then
+                state.showSettingsWindow = true
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Open appearance settings (Ctrl+,)")
+                reaper.ImGui_EndTooltip(ctx)
+            end
+            
             reaper.ImGui_EndChild(ctx)
         end
         
@@ -1376,11 +1392,6 @@ local function loop()
                 reaper.ImGui_SameLine(ctx)
                 if reaper.ImGui_Button(ctx, "Refresh List") then
                     state.needsRefresh = true
-                end
-                
-                reaper.ImGui_SameLine(ctx)
-                if reaper.ImGui_Button(ctx, "Settings") then
-                    state.showSettingsWindow = true
                 end
 
                 reaper.ImGui_Separator(ctx)
