@@ -965,20 +965,23 @@ local function loop()
     -- Apply appearance settings
     local appearance = Settings.getAppearanceSettings()
     
-    -- Apply colors
+    -- Apply colors with dynamic shades
+    local dynamicHoverColor = Settings.getHoverColor(appearance.buttonColor)
+    local dynamicHighlightColor = Settings.getHighlightColor(appearance.buttonColor)
+    
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_WindowBg(), appearance.backgroundColor)
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), appearance.frameColor)
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), appearance.buttonColor)
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), appearance.buttonHoverColor)
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), appearance.highlightColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), dynamicHoverColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), dynamicHighlightColor)
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), appearance.textColor)
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Header(), appearance.headerColor)
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(), appearance.highlightColor)
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderActive(), appearance.highlightColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(), dynamicHighlightColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderActive(), dynamicHighlightColor)
     
     -- Apply style variables
-    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameRounding(), appearance.frameRounding)
-    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowRounding(), appearance.uiRounding)
+    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameRounding(), appearance.uiRounding)
+    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowRounding(), appearance.frameRounding)
     reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ItemSpacing(), appearance.itemSpacing, appearance.itemSpacing)
     reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding(), appearance.windowPadding, appearance.windowPadding)
     
@@ -1021,17 +1024,18 @@ local function loop()
                 reaper.ImGui_Separator(ctx)
                 if reaper.ImGui_MenuItem(ctx, "Reset to Defaults") then
                     -- Reset appearance to defaults
+                    local defaultButtonColor = 0x15856DFF
                     local defaults = {
-                        buttonColor = 0x5D5D5DFF,
-                        buttonHoverColor = 0x7D7D7DFF,
+                        buttonColor = defaultButtonColor,
+                        buttonHoverColor = Settings.getHoverColor(defaultButtonColor),
                         backgroundColor = 0x2E2E2EFF,
                         frameColor = 0x3A3A3AFF,
                         textColor = 0xD5D5D5FF,
-                        highlightColor = 0x4CAF50FF,
+                        highlightColor = Settings.getHighlightColor(defaultButtonColor),
                         headerColor = 0x454545FF,
-                        uiRounding = 4.0,
-                        frameRounding = 3.0,
-                        itemSpacing = 8.0,
+                        uiRounding = 3.0,
+                        frameRounding = 4.0,
+                        itemSpacing = 4.0,
                         windowPadding = 10.0,
                         uiScale = 1.0,
                         fontSize = 14
@@ -1147,27 +1151,6 @@ local function loop()
             end
             
             reaper.ImGui_EndChild(ctx)
-        end
-        
-        reaper.ImGui_Separator(ctx)
-        
-        -- GLOBAL SETTINGS SECTION
-        reaper.ImGui_Text(ctx, "Exclude Tags:")
-        reaper.ImGui_SameLine(ctx)
-        reaper.ImGui_SetNextItemWidth(ctx, 300)
-        local excludeChanged, newExclude = reaper.ImGui_InputText(ctx, "##ExcludeTags", state.excludeTags)
-        if excludeChanged then
-            state.excludeTags = newExclude
-            state.needsRefresh = true
-            Settings.current.excludeTags = state.excludeTags
-            Settings.save()
-        end
-        if reaper.ImGui_IsItemHovered(ctx) then
-            reaper.ImGui_BeginTooltip(ctx)
-            reaper.ImGui_Text(ctx, "Enter tags to exclude, separated by spaces")
-            reaper.ImGui_Text(ctx, "Items/Regions/Tracks starting with these tags will be excluded")
-            reaper.ImGui_Text(ctx, "Example: // # temp_")
-            reaper.ImGui_EndTooltip(ctx)
         end
         
         reaper.ImGui_Separator(ctx)

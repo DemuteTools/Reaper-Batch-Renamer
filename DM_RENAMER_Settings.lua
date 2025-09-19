@@ -95,18 +95,18 @@ function Settings.getDefaultSettings()
         -- UI Appearance settings
         appearance = {
             -- Colors (in 0xRRGGBBAA format)
-            buttonColor = 0x5D5D5DFF,         -- Default gray buttons
-            buttonHoverColor = 0x7D7D7DFF,   -- Lighter gray on hover
+            buttonColor = 0x15856DFF,         -- Default blue-green buttons
+            buttonHoverColor = 0x7D7D7DFF,   -- Auto-calculated from buttonColor
             backgroundColor = 0x2E2E2EFF,     -- Dark gray background
             frameColor = 0x3A3A3AFF,          -- Frame background color
             textColor = 0xD5D5D5FF,           -- Light gray text
-            highlightColor = 0x4CAF50FF,      -- Green highlight
+            highlightColor = 0x4CAF50FF,      -- Auto-calculated from buttonColor
             headerColor = 0x454545FF,         -- Table header color
             
             -- Style settings
-            uiRounding = 4.0,                 -- Corner rounding (0-12)
-            frameRounding = 3.0,              -- Frame rounding
-            itemSpacing = 8.0,                -- Space between items
+            uiRounding = 3.0,                 -- UI elements rounding (buttons, inputs)
+            frameRounding = 4.0,              -- Window rounding
+            itemSpacing = 4.0,                -- Space between items
             windowPadding = 10.0,             -- Window padding
             
             -- Scale/Zoom settings
@@ -476,23 +476,86 @@ function Settings.rgbaToColor(r, g, b, a)
     return (r << 24) | (g << 16) | (b << 8) | a
 end
 
+-- Generate a lighter shade of a color
+function Settings.generateLighterShade(baseColor, factor)
+    factor = factor or 0.2  -- Default 20% lighter
+    local r, g, b, a = Settings.colorToRGBA(baseColor)
+    
+    -- Increase lightness by moving towards white
+    r = math.min(1, r + (1 - r) * factor)
+    g = math.min(1, g + (1 - g) * factor)
+    b = math.min(1, b + (1 - b) * factor)
+    
+    return Settings.rgbaToColor(r, g, b, a)
+end
+
+-- Generate a darker shade of a color
+function Settings.generateDarkerShade(baseColor, factor)
+    factor = factor or 0.2  -- Default 20% darker
+    local r, g, b, a = Settings.colorToRGBA(baseColor)
+    
+    -- Decrease lightness by moving towards black
+    r = math.max(0, r * (1 - factor))
+    g = math.max(0, g * (1 - factor))
+    b = math.max(0, b * (1 - factor))
+    
+    return Settings.rgbaToColor(r, g, b, a)
+end
+
+-- Generate a highlight shade (more saturated/lighter)
+function Settings.generateHighlightShade(baseColor)
+    local r, g, b, a = Settings.colorToRGBA(baseColor)
+    
+    -- Find the max and min components
+    local max = math.max(r, g, b)
+    local min = math.min(r, g, b)
+    
+    -- Increase saturation and brightness
+    local saturationBoost = 0.3
+    local brightnessBoost = 0.25
+    
+    -- Boost saturation by moving away from gray
+    local gray = (r + g + b) / 3
+    r = r + (r - gray) * saturationBoost
+    g = g + (g - gray) * saturationBoost
+    b = b + (b - gray) * saturationBoost
+    
+    -- Boost brightness
+    r = math.min(1, r + brightnessBoost)
+    g = math.min(1, g + brightnessBoost)
+    b = math.min(1, b + brightnessBoost)
+    
+    return Settings.rgbaToColor(r, g, b, a)
+end
+
+-- Generate hover color from button color
+function Settings.getHoverColor(buttonColor)
+    return Settings.generateLighterShade(buttonColor, 0.2)
+end
+
+-- Generate highlight/active color from button color
+function Settings.getHighlightColor(buttonColor)
+    return Settings.generateHighlightShade(buttonColor)
+end
+
 -- Ensure appearance settings exist (for backwards compatibility)
 function Settings.ensureAppearanceSettings()
     if not Settings.current.appearance then
+        local defaultButtonColor = 0x15856DFF
         Settings.current.appearance = {
             -- Colors (in 0xRRGGBBAA format)
-            buttonColor = 0x5D5D5DFF,         -- Default gray buttons
-            buttonHoverColor = 0x7D7D7DFF,   -- Lighter gray on hover
+            buttonColor = defaultButtonColor,         -- Default blue-green buttons
+            buttonHoverColor = Settings.getHoverColor(defaultButtonColor),   -- Auto-calculated
             backgroundColor = 0x2E2E2EFF,     -- Dark gray background
             frameColor = 0x3A3A3AFF,          -- Frame background color
             textColor = 0xD5D5D5FF,           -- Light gray text
-            highlightColor = 0x4CAF50FF,      -- Green highlight
+            highlightColor = Settings.getHighlightColor(defaultButtonColor),      -- Auto-calculated
             headerColor = 0x454545FF,         -- Table header color
             
             -- Style settings
-            uiRounding = 4.0,                 -- Corner rounding (0-12)
-            frameRounding = 3.0,              -- Frame rounding
-            itemSpacing = 8.0,                -- Space between items
+            uiRounding = 3.0,                 -- UI elements rounding (buttons, inputs)
+            frameRounding = 4.0,              -- Window rounding
+            itemSpacing = 4.0,                -- Space between items
             windowPadding = 10.0,             -- Window padding
             
             -- Scale/Zoom settings

@@ -72,9 +72,42 @@ local function colorPicker(label, tempKey)
         tempSettings[tempKey] = newColor
         -- Apply immediately for live preview
         Settings.setAppearanceOption(tempKey, newColor)
+        
+        -- If button color changed, update hover and highlight colors automatically
+        if tempKey == "buttonColor" then
+            tempSettings.buttonHoverColor = Settings.getHoverColor(newColor)
+            tempSettings.highlightColor = Settings.getHighlightColor(newColor)
+            Settings.setAppearanceOption("buttonHoverColor", tempSettings.buttonHoverColor)
+            Settings.setAppearanceOption("highlightColor", tempSettings.highlightColor)
+        end
+        
         return true
     end
     return false
+end
+
+-- Show general settings section
+local function showGeneralSettings()
+    reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Exclude Tags")
+    reaper.ImGui_Separator(ctx)
+    
+    reaper.ImGui_Text(ctx, "Tags to exclude from renaming:")
+    reaper.ImGui_SetNextItemWidth(ctx, 400)
+    
+    -- Get the current exclude tags
+    local excludeTags = Settings.current.excludeTags or ""
+    local excludeChanged, newExclude = reaper.ImGui_InputText(ctx, "##ExcludeTags", excludeTags)
+    if excludeChanged then
+        Settings.current.excludeTags = newExclude
+        Settings.save()
+    end
+    
+    reaper.ImGui_Text(ctx, "Enter tags separated by spaces")
+    reaper.ImGui_TextColored(ctx, 0xAAAA00FF, 
+        "Items/Regions/Tracks starting with these tags will be excluded from renaming")
+    reaper.ImGui_Text(ctx, "Example: // # temp_")
+    
+    reaper.ImGui_Separator(ctx)
 end
 
 -- Show appearance settings section
@@ -117,7 +150,7 @@ local function showAppearanceSettings()
     
     -- UI Rounding slider
     reaper.ImGui_PushItemWidth(ctx, 200)
-    local rv, newRounding = reaper.ImGui_SliderDouble(ctx, "UI Rounding", 
+    local rv, newRounding = reaper.ImGui_SliderDouble(ctx, "UI Elements Rounding", 
         tempSettings.uiRounding, 0.0, 12.0, "%.1f")
     if rv and newRounding ~= tempSettings.uiRounding then
         tempSettings.uiRounding = newRounding
@@ -127,12 +160,12 @@ local function showAppearanceSettings()
     reaper.ImGui_SameLine(ctx)
     if reaper.ImGui_IsItemHovered(ctx) then
         reaper.ImGui_SetTooltip(ctx, 
-            "Controls the roundness of UI elements like buttons and frames.\n" ..
+            "Controls the roundness of UI elements like buttons, input fields, and sliders.\n" ..
             "Higher values create more rounded corners.")
     end
     
     -- Frame Rounding slider
-    local rv, newFrameRounding = reaper.ImGui_SliderDouble(ctx, "Frame Rounding", 
+    local rv, newFrameRounding = reaper.ImGui_SliderDouble(ctx, "Window Rounding", 
         tempSettings.frameRounding, 0.0, 12.0, "%.1f")
     if rv and newFrameRounding ~= tempSettings.frameRounding then
         tempSettings.frameRounding = newFrameRounding
@@ -233,12 +266,13 @@ local function showPresetsSection()
     
     -- Preset buttons
     if reaper.ImGui_Button(ctx, "Dark Theme", 120, 0) then
-        tempSettings.backgroundColor = 0x2E2E2EFF
+        local themeButtonColor = 0x0A7A62FF
+        tempSettings.backgroundColor = 0x0A7A62FF
         tempSettings.frameColor = 0x3A3A3AFF
         tempSettings.textColor = 0xD5D5D5FF
-        tempSettings.buttonColor = 0x5D5D5DFF
-        tempSettings.buttonHoverColor = 0x7D7D7DFF
-        tempSettings.highlightColor = 0x4CAF50FF
+        tempSettings.buttonColor = themeButtonColor
+        tempSettings.buttonHoverColor = Settings.getHoverColor(themeButtonColor)
+        tempSettings.highlightColor = Settings.getHighlightColor(themeButtonColor)
         tempSettings.headerColor = 0x454545FF
         
         -- Apply immediately
@@ -251,12 +285,13 @@ local function showPresetsSection()
     
     reaper.ImGui_SameLine(ctx)
     if reaper.ImGui_Button(ctx, "Light Theme", 120, 0) then
+        local themeButtonColor = 0xD0D0D0FF
         tempSettings.backgroundColor = 0xF5F5F5FF
         tempSettings.frameColor = 0xE0E0E0FF
         tempSettings.textColor = 0x2A2A2AFF
-        tempSettings.buttonColor = 0xD0D0D0FF
-        tempSettings.buttonHoverColor = 0xC0C0C0FF
-        tempSettings.highlightColor = 0x4CAF50FF
+        tempSettings.buttonColor = themeButtonColor
+        tempSettings.buttonHoverColor = Settings.getHoverColor(themeButtonColor)
+        tempSettings.highlightColor = Settings.getHighlightColor(themeButtonColor)
         tempSettings.headerColor = 0xE5E5E5FF
         
         -- Apply immediately
@@ -269,12 +304,13 @@ local function showPresetsSection()
     
     reaper.ImGui_SameLine(ctx)
     if reaper.ImGui_Button(ctx, "High Contrast", 120, 0) then
+        local themeButtonColor = 0x404040FF
         tempSettings.backgroundColor = 0x000000FF
         tempSettings.frameColor = 0x202020FF
         tempSettings.textColor = 0xFFFFFFFF
-        tempSettings.buttonColor = 0x404040FF
-        tempSettings.buttonHoverColor = 0x606060FF
-        tempSettings.highlightColor = 0x00FF00FF
+        tempSettings.buttonColor = themeButtonColor
+        tempSettings.buttonHoverColor = Settings.getHoverColor(themeButtonColor)
+        tempSettings.highlightColor = Settings.getHighlightColor(themeButtonColor)
         tempSettings.headerColor = 0x303030FF
         
         -- Apply immediately
@@ -287,12 +323,13 @@ local function showPresetsSection()
     
     reaper.ImGui_SameLine(ctx)
     if reaper.ImGui_Button(ctx, "Blue Theme", 120, 0) then
+        local themeButtonColor = 0x3A5F8AFF
         tempSettings.backgroundColor = 0x1E3A5FFF
         tempSettings.frameColor = 0x2A4E7CFF
         tempSettings.textColor = 0xE8F0FFFF
-        tempSettings.buttonColor = 0x3A5F8AFF
-        tempSettings.buttonHoverColor = 0x4A6F9AFF
-        tempSettings.highlightColor = 0x64B5F6FF
+        tempSettings.buttonColor = themeButtonColor
+        tempSettings.buttonHoverColor = Settings.getHoverColor(themeButtonColor)
+        tempSettings.highlightColor = Settings.getHighlightColor(themeButtonColor)
         tempSettings.headerColor = 0x2D5080FF
         
         -- Apply immediately
@@ -313,16 +350,21 @@ function SettingsUI.showSettingsWindow(open)
     -- Initialize temporary variables
     initTempSettings()
     
-    local windowFlags = reaper.ImGui_WindowFlags_NoResize() | 
-                       reaper.ImGui_WindowFlags_AlwaysAutoResize()
+    local windowFlags = 0  -- No flags = resizable window
     
-    reaper.ImGui_SetNextWindowSize(ctx, 650, 550, reaper.ImGui_Cond_FirstUseEver())
+    reaper.ImGui_SetNextWindowSize(ctx, 750, 650, reaper.ImGui_Cond_FirstUseEver())
     
     local visible, open = reaper.ImGui_Begin(ctx, 'DM RENAMER Settings', open, windowFlags)
     
     if visible then
         -- Create tabs for different sections
         if reaper.ImGui_BeginTabBar(ctx, "SettingsTabs") then
+            
+            -- General Tab
+            if reaper.ImGui_BeginTabItem(ctx, "General") then
+                showGeneralSettings()
+                reaper.ImGui_EndTabItem(ctx)
+            end
             
             -- Appearance Tab
             if reaper.ImGui_BeginTabItem(ctx, "Appearance") then
@@ -379,16 +421,17 @@ function SettingsUI.showSettingsWindow(open)
         reaper.ImGui_SameLine(ctx)
         if reaper.ImGui_Button(ctx, "Reset Defaults", buttonWidth, 0) then
             -- Reset to default values
+            local defaultButtonColor = 0x15856DFF
             tempSettings.backgroundColor = 0x2E2E2EFF
             tempSettings.frameColor = 0x3A3A3AFF
             tempSettings.textColor = 0xD5D5D5FF
-            tempSettings.buttonColor = 0x5D5D5DFF
-            tempSettings.buttonHoverColor = 0x7D7D7DFF
-            tempSettings.highlightColor = 0x4CAF50FF
+            tempSettings.buttonColor = defaultButtonColor
+            tempSettings.buttonHoverColor = Settings.getHoverColor(defaultButtonColor)
+            tempSettings.highlightColor = Settings.getHighlightColor(defaultButtonColor)
             tempSettings.headerColor = 0x454545FF
-            tempSettings.uiRounding = 4.0
-            tempSettings.frameRounding = 3.0
-            tempSettings.itemSpacing = 8.0
+            tempSettings.uiRounding = 3.0
+            tempSettings.frameRounding = 4.0
+            tempSettings.itemSpacing = 4.0
             tempSettings.windowPadding = 10.0
             tempSettings.uiScale = 1.0
             tempSettings.fontSize = 14
