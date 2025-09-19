@@ -968,6 +968,7 @@ local function loop()
     -- Apply colors with dynamic shades
     local dynamicHoverColor = Settings.getHoverColor(appearance.buttonColor)
     local dynamicHighlightColor = Settings.getHighlightColor(appearance.buttonColor)
+    local dynamicSelectionColor = Settings.getSelectionColor(appearance.buttonColor)
     
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_WindowBg(), appearance.backgroundColor)
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), appearance.frameColor)
@@ -975,15 +976,72 @@ local function loop()
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), dynamicHoverColor)
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), dynamicHighlightColor)
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Text(), appearance.textColor)
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Header(), appearance.headerColor)
-    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(), dynamicHighlightColor)
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Header(), dynamicSelectionColor)  -- Use subtle button color tint for selections
+    reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderHovered(), dynamicHoverColor)  -- Use hover color for better readability
     reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_HeaderActive(), dynamicHighlightColor)
+    
+    -- Apply button color to tabs (check if constants exist first)
+    local extraColorsPushed = 0
+    
+    -- Tab colors - try new constants first, fall back to old ones if needed
+    if reaper.ImGui_Col_Tab then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Tab(), appearance.buttonColor)
+        extraColorsPushed = extraColorsPushed + 1
+    end
+    if reaper.ImGui_Col_TabHovered then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabHovered(), dynamicHoverColor)
+        extraColorsPushed = extraColorsPushed + 1
+    end
+    -- Try TabSelected (new) or TabActive (old)
+    if reaper.ImGui_Col_TabSelected then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabSelected(), dynamicHighlightColor)
+        extraColorsPushed = extraColorsPushed + 1
+    elseif reaper.ImGui_Col_TabActive then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabActive(), dynamicHighlightColor)
+        extraColorsPushed = extraColorsPushed + 1
+    end
+    -- Try TabDimmed (new) or TabUnfocused (old)
+    if reaper.ImGui_Col_TabDimmed then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabDimmed(), appearance.buttonColor)
+        extraColorsPushed = extraColorsPushed + 1
+    elseif reaper.ImGui_Col_TabUnfocused then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabUnfocused(), appearance.buttonColor)
+        extraColorsPushed = extraColorsPushed + 1
+    end
+    -- Try TabDimmedSelected (new) or TabUnfocusedActive (old)
+    if reaper.ImGui_Col_TabDimmedSelected then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabDimmedSelected(), appearance.buttonColor)
+        extraColorsPushed = extraColorsPushed + 1
+    elseif reaper.ImGui_Col_TabUnfocusedActive then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_TabUnfocusedActive(), appearance.buttonColor)
+        extraColorsPushed = extraColorsPushed + 1
+    end
+    
+    -- Apply button color to slider knobs (check if constants exist)
+    if reaper.ImGui_Col_SliderGrab then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_SliderGrab(), appearance.buttonColor)
+        extraColorsPushed = extraColorsPushed + 1
+    end
+    if reaper.ImGui_Col_SliderGrabActive then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_SliderGrabActive(), dynamicHighlightColor)
+        extraColorsPushed = extraColorsPushed + 1
+    end
+    
+    -- Apply button color to checkboxes (check if constant exists)
+    if reaper.ImGui_Col_CheckMark then
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_CheckMark(), appearance.buttonColor)
+        extraColorsPushed = extraColorsPushed + 1
+    end
+    
+    -- Store the count for later PopStyleColor
+    state.extraColorsPushed = extraColorsPushed
     
     -- Apply style variables
     reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FrameRounding(), appearance.uiRounding)
     reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowRounding(), appearance.frameRounding)
     reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_ItemSpacing(), appearance.itemSpacing, appearance.itemSpacing)
     reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_WindowPadding(), appearance.windowPadding, appearance.windowPadding)
+    reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_GrabRounding(), appearance.uiRounding)  -- Apply rounding to slider knobs
     
     local visible, open = reaper.ImGui_Begin(ctx, 'DM RENAMER', true)
     
@@ -2185,8 +2243,10 @@ local function loop()
     end
     
     -- Pop all style colors and variables
-    reaper.ImGui_PopStyleColor(ctx, 9)  -- We pushed 9 colors
-    reaper.ImGui_PopStyleVar(ctx, 4)    -- We pushed 4 style variables
+    -- Pop base colors (9) plus any extra colors that were successfully pushed
+    local totalColors = 9 + (state.extraColorsPushed or 0)
+    reaper.ImGui_PopStyleColor(ctx, totalColors)
+    reaper.ImGui_PopStyleVar(ctx, 5)    -- We pushed 5 style variables
     
     if open then
         reaper.defer(loop)

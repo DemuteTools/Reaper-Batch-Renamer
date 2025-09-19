@@ -101,7 +101,7 @@ function Settings.getDefaultSettings()
             frameColor = 0x3A3A3AFF,          -- Frame background color
             textColor = 0xD5D5D5FF,           -- Light gray text
             highlightColor = 0x4CAF50FF,      -- Auto-calculated from buttonColor
-            headerColor = 0x454545FF,         -- Table header color
+            headerColor = 0x454545FF,         -- Legacy - now uses dynamic selection color
             
             -- Style settings
             uiRounding = 3.0,                 -- UI elements rounding (buttons, inputs)
@@ -538,6 +538,23 @@ function Settings.getHighlightColor(buttonColor)
     return Settings.generateHighlightShade(buttonColor)
 end
 
+-- Generate a subtle selection color from button color
+function Settings.getSelectionColor(buttonColor)
+    -- Create a very subtle tint of the button color for selected items
+    local r, g, b, a = Settings.colorToRGBA(buttonColor)
+    
+    -- Get background color for mixing
+    local bgColor = Settings.current.appearance.backgroundColor or 0x2E2E2EFF
+    local bgR, bgG, bgB, bgA = Settings.colorToRGBA(bgColor)
+    
+    -- Mix colors: 30% button color, 70% background for subtlety
+    r = bgR * 0.7 + r * 0.3
+    g = bgG * 0.7 + g * 0.3
+    b = bgB * 0.7 + b * 0.3
+    
+    return Settings.rgbaToColor(r, g, b, a)
+end
+
 -- Ensure appearance settings exist (for backwards compatibility)
 function Settings.ensureAppearanceSettings()
     if not Settings.current.appearance then
@@ -550,7 +567,7 @@ function Settings.ensureAppearanceSettings()
             frameColor = 0x3A3A3AFF,          -- Frame background color
             textColor = 0xD5D5D5FF,           -- Light gray text
             highlightColor = Settings.getHighlightColor(defaultButtonColor),      -- Auto-calculated
-            headerColor = 0x454545FF,         -- Table header color
+            headerColor = 0x454545FF,         -- Legacy - now uses dynamic selection color
             
             -- Style settings
             uiRounding = 3.0,                 -- UI elements rounding (buttons, inputs)

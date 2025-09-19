@@ -148,51 +148,51 @@ local function showAppearanceSettings()
     reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Style Settings")
     reaper.ImGui_Separator(ctx)
     
-    -- UI Rounding slider
-    reaper.ImGui_PushItemWidth(ctx, 200)
+    -- Style Settings with proper alignment in two columns
+    local sliderWidth = 280  -- Same width as color pickers
+    
+    -- First row
+    reaper.ImGui_PushItemWidth(ctx, sliderWidth)
     local rv, newRounding = reaper.ImGui_SliderDouble(ctx, "UI Elements Rounding", 
         tempSettings.uiRounding, 0.0, 12.0, "%.1f")
     if rv and newRounding ~= tempSettings.uiRounding then
         tempSettings.uiRounding = newRounding
         Settings.setAppearanceOption("uiRounding", newRounding)
     end
-    
-    reaper.ImGui_SameLine(ctx)
     if reaper.ImGui_IsItemHovered(ctx) then
         reaper.ImGui_SetTooltip(ctx, 
             "Controls the roundness of UI elements like buttons, input fields, and sliders.\n" ..
             "Higher values create more rounded corners.")
     end
     
-    -- Frame Rounding slider
+    reaper.ImGui_SameLine(ctx, sliderWidth + 50)
     local rv, newFrameRounding = reaper.ImGui_SliderDouble(ctx, "Window Rounding", 
         tempSettings.frameRounding, 0.0, 12.0, "%.1f")
     if rv and newFrameRounding ~= tempSettings.frameRounding then
         tempSettings.frameRounding = newFrameRounding
         Settings.setAppearanceOption("frameRounding", newFrameRounding)
     end
+    reaper.ImGui_PopItemWidth(ctx)
     
-    -- Item Spacing slider
+    -- Second row
+    reaper.ImGui_PushItemWidth(ctx, sliderWidth)
     local rv, newSpacing = reaper.ImGui_SliderDouble(ctx, "Item Spacing", 
         tempSettings.itemSpacing, 0, 20, "%.1f")
     if rv and newSpacing ~= tempSettings.itemSpacing then
         tempSettings.itemSpacing = newSpacing
         Settings.setAppearanceOption("itemSpacing", newSpacing)
     end
-    
-    reaper.ImGui_SameLine(ctx)
     if reaper.ImGui_IsItemHovered(ctx) then
         reaper.ImGui_SetTooltip(ctx, "Controls the space between UI elements.")
     end
     
-    -- Window Padding slider
+    reaper.ImGui_SameLine(ctx, sliderWidth + 50)
     local rv, newPadding = reaper.ImGui_SliderDouble(ctx, "Window Padding", 
         tempSettings.windowPadding, 0, 20, "%.1f")
     if rv and newPadding ~= tempSettings.windowPadding then
         tempSettings.windowPadding = newPadding
         Settings.setAppearanceOption("windowPadding", newPadding)
     end
-    
     reaper.ImGui_PopItemWidth(ctx)
 end
 
