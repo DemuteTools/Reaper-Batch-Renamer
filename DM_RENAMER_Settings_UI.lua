@@ -267,7 +267,7 @@ local function showPresetsSection()
     -- Preset buttons
     if reaper.ImGui_Button(ctx, "Dark Theme", 120, 0) then
         local themeButtonColor = 0x0A7A62FF
-        tempSettings.backgroundColor = 0x0A7A62FF
+        tempSettings.backgroundColor = 0x2E2E2EFF
         tempSettings.frameColor = 0x3A3A3AFF
         tempSettings.textColor = 0xD5D5D5FF
         tempSettings.buttonColor = themeButtonColor
