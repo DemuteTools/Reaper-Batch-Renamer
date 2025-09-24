@@ -140,11 +140,18 @@ Result: Bass_03 → 03_Bass
 **Three Modes:**
 1. **Simple** - Basic sequential (Section_01, Section_02)
 2. **Hierarchical** - Region_Track names (Verse_Guitar, Chorus_Bass)
-3. **Custom** - Use pattern: `{region}_{track}`
+3. **Custom** - Use pattern: `$region1_$track1`
 
 **Variables:**
-- `{region}` - Parent region name
-- `{track}` - Track name
+- `$region1`, `$region2`, `$region3`... - Regions by hierarchy (1=parent, 2=first child, etc.)
+- `$track1`, `$track2`, `$track3`... - Tracks by hierarchy (1=parent, 2=child, etc.)
+- `$position` - Item position
+- `$index` - Item index
+
+**Examples:**
+- `$region1_$track1` → "sfx_dirt"
+- `$region2_$region3` → "boss_attack"
+- `$track2_$region1` → "grass_sfx"
 
 ### Presets
 

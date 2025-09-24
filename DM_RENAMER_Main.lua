@@ -131,7 +131,7 @@ local state = {
     -- Folder Items specific state
     folderItemPattern = "hierarchical",  -- simple, hierarchical, custom
     folderItemSeparator = "_",
-    folderItemCustomPattern = "{region}_{track}",
+    folderItemCustomPattern = "$region1_$track1",
     folderItemAutoIncrement = true,  -- Auto-increment duplicate names (default: true)
     -- Global exclude tags (space-separated)
     excludeTags = "",  -- Global tags to exclude items/regions/tracks from renaming
@@ -1387,8 +1387,9 @@ local function loop()
                     end
                     
                     -- Pattern help
-                    reaper.ImGui_Text(ctx, "Variables: {region}, {region_parent}, {region_child}")
-                    reaper.ImGui_Text(ctx, "           {track}, {track_parent}, {position}")
+                    reaper.ImGui_Text(ctx, "Variables: $region1, $region2, $region3... (regions by hierarchy)")
+                    reaper.ImGui_Text(ctx, "           $track1, $track2, $track3... (tracks by hierarchy)")
+                    reaper.ImGui_Text(ctx, "           $position, $index")
                 end
                 
                 -- Auto-increment option moved to general section

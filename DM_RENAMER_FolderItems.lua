@@ -65,19 +65,20 @@ function FolderItems.isEmptyItem(item)
     return true  -- No content found
 end
 
--- Get regions at a specific position
+-- Get regions at a specific position (returns ordered array by hierarchy)
 function FolderItems.getRegionsAtPosition(position, length, excludeTag)
-    local regions = {parent = nil, children = {}}
-    local itemEnd = position + length
     local allRegions = {}
-    
+    local itemEnd = position + length
+
     -- Collect all regions that contain this position
     local i = 0
     repeat
         local retval, isrgn, pos, rgnend, name, markrgnindexnumber = reaper.EnumProjectMarkers(i)
         if retval > 0 and isrgn then
             -- Check if the item is within this region
-            if position >= pos and position < rgnend then
+            -- Add 1ms tolerance for position check to handle floating point precision issues
+            -- when folder items are positioned exactly at region start
+            if position >= (pos - 0.001) and position < rgnend then
                 -- Check if region should be excluded
                 if not isExcluded(name, excludeTag) then
                     table.insert(allRegions, {
@@ -91,31 +92,28 @@ function FolderItems.getRegionsAtPosition(position, length, excludeTag)
         end
         i = i + 1
     until retval == 0
-    
-    -- Sort regions by size (largest first = parent)
+
+    -- Sort regions by size (largest first = parent, then nested children)
     table.sort(allRegions, function(a, b) return a.size > b.size end)
-    
-    -- First region is the parent (largest)
-    if #allRegions > 0 then
-        regions.parent = allRegions[1].name
-        -- Rest are children (embedded regions)
-        for j = 2, #allRegions do
-            table.insert(regions.children, allRegions[j].name)
-        end
+
+    -- Return just the names in hierarchical order
+    local regions = {}
+    for j = 1, #allRegions do
+        table.insert(regions, allRegions[j].name)
     end
-    
+
     return regions
 end
 
--- Get track hierarchy
+-- Get track hierarchy (returns ordered array by hierarchy)
 function FolderItems.getTrackHierarchy(track, excludeTag)
-    local hierarchy = {parent = nil, current = nil, path = {}}
-    
-    if not track then return hierarchy end
-    
+    local trackPath = {}
+
+    if not track then return trackPath end
+
     -- Get current track name
     local _, currentName = reaper.GetTrackName(track)
-    
+
     -- Check if current track should be excluded
     if isExcluded(currentName, excludeTag) then
         -- Skip this track but continue to parent
@@ -123,36 +121,31 @@ function FolderItems.getTrackHierarchy(track, excludeTag)
         if parentTrack then
             return FolderItems.getTrackHierarchy(parentTrack, excludeTag)
         else
-            return hierarchy  -- No valid track found
+            return trackPath  -- No valid track found
         end
     end
-    
-    hierarchy.current = currentName
-    
+
     -- Build hierarchy path from current track to top parent
     local currentTrack = track
-    local trackPath = {}
-    
+
     -- Add current track name if not excluded
     if not isExcluded(currentName, excludeTag) then
         table.insert(trackPath, currentName)
     end
-    
+
     while currentTrack do
         local parentTrack = reaper.GetParentTrack(currentTrack)
         if parentTrack then
             local _, parentName = reaper.GetTrackName(parentTrack)
             -- Only add if not excluded
             if not isExcluded(parentName, excludeTag) then
-                table.insert(trackPath, 1, parentName)  -- Insert at beginning
-                hierarchy.parent = parentName  -- The topmost non-excluded parent
+                table.insert(trackPath, 1, parentName)  -- Insert at beginning (parent first)
             end
         end
         currentTrack = parentTrack
     end
-    
-    hierarchy.path = trackPath
-    return hierarchy
+
+    return trackPath
 end
 
 -- Generate name based on pattern
@@ -160,83 +153,93 @@ function FolderItems.generateName(itemData, pattern, options)
     options = options or {}
     local separator = options.separator or "_"
     local name = ""
-    
+
     if pattern == "simple" then
-        -- Simple pattern: region_track
+        -- Simple pattern: first region_first track
         local parts = {}
-        if itemData.regionParent then
-            table.insert(parts, itemData.regionParent)
+        if itemData.regions and #itemData.regions > 0 then
+            table.insert(parts, itemData.regions[1])  -- First (parent) region
         end
         if itemData.trackName then
             table.insert(parts, itemData.trackName)
         end
         name = table.concat(parts, separator)
-        
+
     elseif pattern == "hierarchical" then
         -- Hierarchical pattern: all levels
         local parts = {}
-        
-        -- Add parent region
-        if itemData.regionParent then
-            table.insert(parts, itemData.regionParent)
-        end
-        
-        -- Add child regions
-        if itemData.regionChildren and #itemData.regionChildren > 0 then
-            for _, child in ipairs(itemData.regionChildren) do
-                table.insert(parts, child)
+
+        -- Add all regions
+        if itemData.regions then
+            for _, region in ipairs(itemData.regions) do
+                table.insert(parts, region)
             end
         end
-        
+
         -- Add track hierarchy
-        if itemData.trackHierarchy and itemData.trackHierarchy.path then
-            for _, trackName in ipairs(itemData.trackHierarchy.path) do
+        if itemData.tracks then
+            for _, trackName in ipairs(itemData.tracks) do
                 table.insert(parts, trackName)
             end
         end
-        
+
         -- Use configured separator for hierarchical
         name = table.concat(parts, separator)
-        
+
     elseif pattern == "custom" and options.customPattern then
-        -- Custom pattern with variables
+        -- Custom pattern with $ variables
         name = options.customPattern
-        
+
         -- Create a placeholder for empty values
         local EMPTY_PLACEHOLDER = "<<EMPTY>>"
-        
-        -- Replace variables (use placeholder for empty values)
-        name = name:gsub("{region}", itemData.regionParent or EMPTY_PLACEHOLDER)
-        name = name:gsub("{region_parent}", itemData.regionParent or EMPTY_PLACEHOLDER)
-        name = name:gsub("{region_child}", itemData.regionChildren and itemData.regionChildren[1] or EMPTY_PLACEHOLDER)
-        name = name:gsub("{track}", itemData.trackName or EMPTY_PLACEHOLDER)
-        name = name:gsub("{track_parent}", itemData.trackHierarchy and itemData.trackHierarchy.parent or EMPTY_PLACEHOLDER)
-        name = name:gsub("{position}", Common.formatTime and Common.formatTime(itemData.position) or string.format("%.2f", itemData.position))
-        name = name:gsub("{index}", tostring(itemData.index or 0))
-        
+
+        -- Replace numbered region variables
+        name = name:gsub("%$region(%d+)", function(num)
+            local index = tonumber(num)
+            if itemData.regions and itemData.regions[index] then
+                return itemData.regions[index]
+            else
+                return EMPTY_PLACEHOLDER
+            end
+        end)
+
+        -- Replace numbered track variables
+        name = name:gsub("%$track(%d+)", function(num)
+            local index = tonumber(num)
+            if itemData.tracks and itemData.tracks[index] then
+                return itemData.tracks[index]
+            else
+                return EMPTY_PLACEHOLDER
+            end
+        end)
+
+        -- Replace other variables
+        name = name:gsub("%$position", Common.formatTime and Common.formatTime(itemData.position) or string.format("%.2f", itemData.position))
+        name = name:gsub("%$index", tostring(itemData.index or 0))
+
         -- Clean up: remove empty placeholders and their adjacent separators
         -- Escape separator for pattern matching
         local sep_pattern = separator:gsub("([%(%)%.%%%+%-%*%?%[%]%^%$])", "%%%1")
-        
+
         -- Remove placeholder with separator before or after
         name = name:gsub(EMPTY_PLACEHOLDER .. sep_pattern, "")  -- Remove empty + separator
         name = name:gsub(sep_pattern .. EMPTY_PLACEHOLDER, "")  -- Remove separator + empty
         name = name:gsub(EMPTY_PLACEHOLDER, "")  -- Remove remaining empty
-        
+
         -- Clean up multiple separators
         if separator ~= " " then  -- Don't clean multiple spaces yet, handled below
             name = name:gsub(sep_pattern .. "+", separator)  -- Replace multiple separators with one
         end
-        
+
         -- Remove leading/trailing separators
         name = name:gsub("^" .. sep_pattern, "")  -- Remove leading separator
         name = name:gsub(sep_pattern .. "$", "")  -- Remove trailing separator
     end
-    
+
     -- Clean up multiple spaces/separators
     name = name:gsub("%s+", " ")
     name = name:gsub("^%s*(.-)%s*$", "%1")  -- Trim
-    
+
     return name
 end
 
@@ -281,10 +284,10 @@ local function createFolderItemData(item, index)
     
     -- Get regions at this position (with exclude tag from current options)
     local regions = FolderItems.getRegionsAtPosition(position, length, currentOptions.excludeTag)
-    
+
     -- Get track hierarchy (with exclude tag from current options)
-    local trackHierarchy = FolderItems.getTrackHierarchy(track, currentOptions.excludeTag)
-    
+    local tracks = FolderItems.getTrackHierarchy(track, currentOptions.excludeTag)
+
     return {
         item = item,
         take = take,
@@ -293,14 +296,13 @@ local function createFolderItemData(item, index)
         notes = notes,
         trackName = trackName,
         trackNumber = trackNumber,
-        trackHierarchy = trackHierarchy,
+        regions = regions,  -- Ordered array of regions
+        tracks = tracks,    -- Ordered array of tracks
         position = position,
         length = length,
         color = color,
         selected = selected,
-        regionParent = regions.parent,
-        regionChildren = regions.children,
-        
+
         -- For UI display
         checked = false,
         preview = "",
@@ -323,17 +325,14 @@ function FolderItems.getList()
             if itemData then
                 -- Build context info string for display
                 local contextParts = {}
-                if itemData.regionParent then
-                    table.insert(contextParts, "Region: " .. itemData.regionParent)
-                    if itemData.regionChildren and #itemData.regionChildren > 0 then
-                        table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
-                    end
+                if itemData.regions and #itemData.regions > 0 then
+                    table.insert(contextParts, "Regions: " .. table.concat(itemData.regions, " > "))
                 end
-                if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
-                    table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
+                if itemData.tracks and #itemData.tracks > 0 then
+                    table.insert(contextParts, "Tracks: " .. table.concat(itemData.tracks, " > "))
                 end
                 itemData.contextInfo = table.concat(contextParts, " | ")
-                
+
                 table.insert(items, itemData)
             end
         end
@@ -362,14 +361,11 @@ function FolderItems.getListWithSelection(selectedOnly)
                     if itemData then
                         -- Build context info...
                         local contextParts = {}
-                        if itemData.regionParent then
-                            table.insert(contextParts, "Region: " .. itemData.regionParent)
-                            if itemData.regionChildren and #itemData.regionChildren > 0 then
-                                table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
-                            end
+                        if itemData.regions and #itemData.regions > 0 then
+                            table.insert(contextParts, "Regions: " .. table.concat(itemData.regions, " > "))
                         end
-                        if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
-                            table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
+                        if itemData.tracks and #itemData.tracks > 0 then
+                            table.insert(contextParts, "Tracks: " .. table.concat(itemData.tracks, " > "))
                         end
                         itemData.contextInfo = table.concat(contextParts, " | ")
                         table.insert(items, itemData)
@@ -392,14 +388,11 @@ function FolderItems.getListWithSelection(selectedOnly)
                         if itemData then
                             -- Build context info...
                             local contextParts = {}
-                            if itemData.regionParent then
-                                table.insert(contextParts, "Region: " .. itemData.regionParent)
-                                if itemData.regionChildren and #itemData.regionChildren > 0 then
-                                    table.insert(contextParts, "(" .. table.concat(itemData.regionChildren, ", ") .. ")")
-                                end
+                            if itemData.regions and #itemData.regions > 0 then
+                                table.insert(contextParts, "Regions: " .. table.concat(itemData.regions, " > "))
                             end
-                            if itemData.trackHierarchy and itemData.trackHierarchy.path and #itemData.trackHierarchy.path > 0 then
-                                table.insert(contextParts, "Track: " .. table.concat(itemData.trackHierarchy.path, " > "))
+                            if itemData.tracks and #itemData.tracks > 0 then
+                                table.insert(contextParts, "Tracks: " .. table.concat(itemData.tracks, " > "))
                             end
                             itemData.contextInfo = table.concat(contextParts, " | ")
                             table.insert(items, itemData)

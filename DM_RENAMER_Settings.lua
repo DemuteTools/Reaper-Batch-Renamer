@@ -87,7 +87,7 @@ function Settings.getDefaultSettings()
         folderItems = {
             pattern = "hierarchical",
             separator = "_",
-            customPattern = "{region}_{track}",
+            customPattern = "$region1_$track1",
             autoIncrement = true,
             excludeTag = "//"
         },
