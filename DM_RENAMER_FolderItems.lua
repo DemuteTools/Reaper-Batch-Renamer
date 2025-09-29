@@ -260,8 +260,8 @@ local function createFolderItemData(item, index)
         notes = notesStr
     end
     
-    -- Exclude items with [JOIN] note
-    if notes == "[JOIN]" then
+    -- Exclude items with [JOIN] note or name
+    if notes == "[JOIN]" or name == "[JOIN]" then
         return nil
     end
     
