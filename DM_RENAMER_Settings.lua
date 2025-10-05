@@ -97,7 +97,7 @@ function Settings.getDefaultSettings()
             -- Colors (in 0xRRGGBBAA format)
             buttonColor = 0x15856DFF,         -- Default blue-green buttons
             buttonHoverColor = 0x7D7D7DFF,   -- Auto-calculated from buttonColor
-            backgroundColor = 0x2E2E2EFF,     -- Dark gray background
+            backgroundColor = 0x181818FF,     -- Dark gray background
             frameColor = 0x3A3A3AFF,          -- Frame background color
             textColor = 0xD5D5D5FF,           -- Light gray text
             highlightColor = 0x4CAF50FF,      -- Auto-calculated from buttonColor
