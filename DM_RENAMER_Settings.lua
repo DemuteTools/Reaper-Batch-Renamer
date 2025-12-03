@@ -88,7 +88,7 @@ function Settings.getDefaultSettings()
             pattern = "hierarchical",
             separator = "_",
             customPattern = "$region1_$track1",
-            autoIncrement = true,
+            incrementMode = "number",  -- "off", "number", or "letter"
             excludeTag = "//"
         },
         
@@ -223,19 +223,27 @@ end
 -- Load settings from ExtState
 function Settings.load()
     local serialized = reaper.GetExtState(EXTSTATE_SECTION, "settings")
-    
+
     if serialized and serialized ~= "" then
         local loaded = deserializeTable(serialized)
         if loaded then
             -- Merge with defaults to ensure all keys exist
             Settings.current = deepMerge(Settings.getDefaultSettings(), loaded)
+
+            -- Migration: convert old autoIncrement (boolean) to incrementMode (string)
+            if Settings.current.folderItems and Settings.current.folderItems.autoIncrement ~= nil then
+                if not Settings.current.folderItems.incrementMode then
+                    Settings.current.folderItems.incrementMode = Settings.current.folderItems.autoIncrement and "number" or "off"
+                end
+                Settings.current.folderItems.autoIncrement = nil
+            end
         else
             Settings.current = Settings.getDefaultSettings()
         end
     else
         Settings.current = Settings.getDefaultSettings()
     end
-    
+
     return Settings.current
 end
 

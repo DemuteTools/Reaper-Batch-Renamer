@@ -752,9 +752,9 @@ function Regions.updatePreview(regionList, findText, replaceText, options)
         region.changed = (newName ~= region.name)
     end
 
-    -- Apply auto-increment if enabled
-    if options.autoIncrement then
-        Common.handleDuplicateNames(regionList, true)
+    -- Apply increment mode if not "off"
+    if options.incrementMode and options.incrementMode ~= "off" then
+        Common.handleDuplicateNames(regionList, options.incrementMode)
     end
 end
 

@@ -798,9 +798,9 @@ function Markers.updatePreview(markerList, findText, replaceText, options)
         marker.changed = (newName ~= marker.name)
     end
 
-    -- Apply auto-increment if enabled
-    if options.autoIncrement then
-        Common.handleDuplicateNames(markerList, true)
+    -- Apply increment mode if not "off"
+    if options.incrementMode and options.incrementMode ~= "off" then
+        Common.handleDuplicateNames(markerList, options.incrementMode)
     end
 end
 

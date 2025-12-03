@@ -21,14 +21,14 @@ function Presets.save(name, state)
         transformCase = state.transformCase,
         prefix = state.prefix,
         suffix = state.suffix,
-        autoIncrement = state.autoIncrement,
+        incrementMode = state.incrementMode,
         autoSelectChanged = state.autoSelectChanged,
         jumpToPosition = state.jumpToPosition,
         -- Add folder items specific settings
         folderItemPattern = state.folderItemPattern,
         folderItemSeparator = state.folderItemSeparator,
         folderItemCustomPattern = state.folderItemCustomPattern,
-        folderItemAutoIncrement = state.folderItemAutoIncrement,
+        folderItemIncrementMode = state.folderItemIncrementMode,
         -- Save global exclude tags
         excludeTags = state.excludeTags,
         -- Save space replacement setting
@@ -48,13 +48,27 @@ end
 function Presets.load(name)
     local presets = Presets.load_all()
     local preset = presets[name]
-    
-    -- Handle backwards compatibility: convert old folderItemExcludeTag to excludeTags
-    if preset and preset.folderItemExcludeTag and not preset.excludeTags then
-        preset.excludeTags = preset.folderItemExcludeTag
-        preset.folderItemExcludeTag = nil  -- Remove old field
+
+    if preset then
+        -- Handle backwards compatibility: convert old folderItemExcludeTag to excludeTags
+        if preset.folderItemExcludeTag and not preset.excludeTags then
+            preset.excludeTags = preset.folderItemExcludeTag
+            preset.folderItemExcludeTag = nil
+        end
+
+        -- Handle backwards compatibility: convert old autoIncrement (boolean) to incrementMode (string)
+        if preset.autoIncrement ~= nil and not preset.incrementMode then
+            preset.incrementMode = preset.autoIncrement and "number" or "off"
+            preset.autoIncrement = nil
+        end
+
+        -- Handle backwards compatibility: convert old folderItemAutoIncrement to folderItemIncrementMode
+        if preset.folderItemAutoIncrement ~= nil and not preset.folderItemIncrementMode then
+            preset.folderItemIncrementMode = preset.folderItemAutoIncrement and "number" or "off"
+            preset.folderItemAutoIncrement = nil
+        end
     end
-    
+
     return preset
 end
 

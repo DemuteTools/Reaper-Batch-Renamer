@@ -138,6 +138,21 @@ function Common.padNumber(num, width)
     return numStr
 end
 
+-- Convert number to letter sequence (1=A, 2=B, ..., 26=Z, 27=AA, 28=AB, ...)
+function Common.numberToLetters(num)
+    if num < 1 then return "A" end
+
+    local result = ""
+    while num > 0 do
+        num = num - 1  -- Adjust to 0-based for modulo
+        local remainder = num % 26
+        result = string.char(65 + remainder) .. result  -- 65 = 'A'
+        num = math.floor(num / 26)
+    end
+
+    return result
+end
+
 -- Split string by delimiter
 function Common.splitString(str, delimiter)
     if not str then return {} end
@@ -452,8 +467,9 @@ function Common.parseTime(timeStr)
 end
 
 -- Handle duplicate names with auto-increment
-function Common.handleDuplicateNames(list, autoIncrement)
-    if not autoIncrement then return end
+-- incrementMode: "off", "number", or "letter"
+function Common.handleDuplicateNames(list, incrementMode)
+    if not incrementMode or incrementMode == "off" then return end
 
     -- Group items by preview name
     local nameGroups = {}
@@ -486,7 +502,13 @@ function Common.handleDuplicateNames(list, autoIncrement)
 
             -- Add suffix to duplicates (keep first one unchanged)
             for i = 2, #items do
-                items[i].preview = name .. "_" .. i
+                local suffix
+                if incrementMode == "letter" then
+                    suffix = Common.numberToLetters(i)
+                else  -- "number" mode (default)
+                    suffix = tostring(i)
+                end
+                items[i].preview = name .. "_" .. suffix
             end
         end
     end

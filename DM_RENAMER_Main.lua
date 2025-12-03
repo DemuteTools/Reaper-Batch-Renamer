@@ -132,15 +132,15 @@ local state = {
     folderItemPattern = "hierarchical",  -- simple, hierarchical, custom
     folderItemSeparator = "_",
     folderItemCustomPattern = "$region1_$track1",
-    folderItemAutoIncrement = true,  -- Auto-increment duplicate names (default: true)
+    folderItemIncrementMode = "number",  -- Increment mode for duplicates: "off", "number", "letter"
     -- Global exclude tags (space-separated)
     excludeTags = "",  -- Global tags to exclude items/regions/tracks from renaming
     -- Space replacement mode
     spaceReplacement = "",  -- "" = none, "_" = underscore, "-" = dash, "remove" = remove spaces
     -- Jump to position settings
     jumpToPosition = true,  -- Jump to selected item position (default: true)
-    -- Auto-increment for all tabs
-    autoIncrement = true,
+    -- Increment mode for all tabs: "off", "number", "letter"
+    incrementMode = "number",
     -- Sorting state
     sortColumn = nil,
     sortDirection = "asc",
@@ -176,7 +176,7 @@ if Settings.current.folderItems then
     state.folderItemPattern = Settings.current.folderItems.pattern or state.folderItemPattern
     state.folderItemSeparator = Settings.current.folderItems.separator or state.folderItemSeparator
     state.folderItemCustomPattern = Settings.current.folderItems.customPattern or state.folderItemCustomPattern
-    state.folderItemAutoIncrement = Settings.current.folderItems.autoIncrement ~= nil and Settings.current.folderItems.autoIncrement or state.folderItemAutoIncrement
+    state.folderItemIncrementMode = Settings.current.folderItems.incrementMode or state.folderItemIncrementMode
     -- Load exclude tags from settings (handle both old and new format)
     state.excludeTags = Settings.current.excludeTags or Settings.current.folderItems and Settings.current.folderItems.excludeTag or state.excludeTags
     -- Load space replacement setting
@@ -191,7 +191,7 @@ local function saveFolderItemsSettings()
     Settings.current.folderItems.pattern = state.folderItemPattern
     Settings.current.folderItems.separator = state.folderItemSeparator
     Settings.current.folderItems.customPattern = state.folderItemCustomPattern
-    Settings.current.folderItems.autoIncrement = state.folderItemAutoIncrement
+    Settings.current.folderItems.incrementMode = state.folderItemIncrementMode
     -- Save exclude tags globally
     Settings.current.excludeTags = state.excludeTags
     -- Save space replacement setting
@@ -528,7 +528,7 @@ local function updatePreview()
                 module.updatePreview(state.currentList, state.folderItemPattern, {
                     separator = state.folderItemSeparator,
                     customPattern = state.folderItemCustomPattern,
-                    autoIncrement = state.folderItemAutoIncrement,
+                    incrementMode = state.folderItemIncrementMode,
                     excludeTag = state.excludeTags,
                     -- Add all transformation options for full pattern system
                     operation = state.operation,
@@ -562,12 +562,12 @@ local function updatePreview()
                     numberSeparator = state.numberSeparator,
                     maxLength = state.maxLength,
                     addEllipsis = state.addEllipsis,
-                    autoIncrement = state.autoIncrement,
+                    incrementMode = state.incrementMode,
                     -- Folder items options
                     folderItemPattern = state.folderItemPattern,
                     separator = state.folderItemSeparator,
                     customPattern = state.folderItemCustomPattern,
-                    folderItemAutoIncrement = state.folderItemAutoIncrement,
+                    folderItemIncrementMode = state.folderItemIncrementMode,
                     excludeTag = state.excludeTags,
                     spaceReplacement = state.spaceReplacement
                 })
@@ -592,7 +592,7 @@ local function updatePreview()
                     numberSeparator = state.numberSeparator,
                     maxLength = state.maxLength,
                     addEllipsis = state.addEllipsis,
-                    autoIncrement = state.autoIncrement,
+                    incrementMode = state.incrementMode,
                     spaceReplacement = state.spaceReplacement
                 })
             end
@@ -1675,18 +1675,40 @@ local function loop()
             
             reaper.ImGui_Separator(ctx)
 
-            -- Auto-increment option (for all tabs)
-            reaper.ImGui_Text(ctx, "Auto-increment:")
+            -- Increment mode option (use different state for Folder Items tab)
+            local currentIncrementMode = state.currentTab == "Folder Items" and state.folderItemIncrementMode or state.incrementMode
+            reaper.ImGui_Text(ctx, "Increment:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            local autoIncChanged, autoInc = reaper.ImGui_Checkbox(ctx, "Add number to duplicates", state.autoIncrement)
-            if autoIncChanged then
-                state.autoIncrement = autoInc
+            if reaper.ImGui_RadioButton(ctx, "Off", currentIncrementMode == "off") then
+                if state.currentTab == "Folder Items" then
+                    state.folderItemIncrementMode = "off"
+                else
+                    state.incrementMode = "off"
+                end
+                state.needsPreview = true
+            end
+            reaper.ImGui_SameLine(ctx)
+            if reaper.ImGui_RadioButton(ctx, "Number", currentIncrementMode == "number") then
+                if state.currentTab == "Folder Items" then
+                    state.folderItemIncrementMode = "number"
+                else
+                    state.incrementMode = "number"
+                end
+                state.needsPreview = true
+            end
+            reaper.ImGui_SameLine(ctx)
+            if reaper.ImGui_RadioButton(ctx, "Letter", currentIncrementMode == "letter") then
+                if state.currentTab == "Folder Items" then
+                    state.folderItemIncrementMode = "letter"
+                else
+                    state.incrementMode = "letter"
+                end
                 state.needsPreview = true
             end
             if reaper.ImGui_IsItemHovered(ctx) then
                 reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Automatically add _1, _2, etc. to duplicate names")
+                reaper.ImGui_Text(ctx, "Add suffix to duplicates: Off, Number (01, 02...), Letter (A, B... Z, AA...)")
                 reaper.ImGui_EndTooltip(ctx)
             end
 

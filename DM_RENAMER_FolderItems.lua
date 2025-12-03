@@ -467,26 +467,33 @@ function FolderItems.updatePreview(itemList, pattern, options)
         end
         
         item.basePreview = generatedName
-        
-        -- Count occurrences only if auto-increment is enabled
-        if options.autoIncrement ~= false then  -- Default true if not specified
+
+        -- Count occurrences only if increment mode is not "off"
+        local incrementMode = options.incrementMode or "number"  -- Default to "number"
+        if incrementMode ~= "off" then
             nameCount[generatedName] = (nameCount[generatedName] or 0) + 1
         end
     end
-    
-    -- Second pass: add numbers to duplicates (only if auto-increment enabled)
+
+    -- Second pass: add suffix to duplicates (only if increment mode is not "off")
     local nameIndex = {}
+    local incrementMode = options.incrementMode or "number"  -- Default to "number"
     for _, item in ipairs(itemList) do
         local baseName = item.basePreview
-        
-        if options.autoIncrement ~= false and nameCount[baseName] and nameCount[baseName] > 1 then
-            -- This name has duplicates, add number
+
+        if incrementMode ~= "off" and nameCount[baseName] and nameCount[baseName] > 1 then
+            -- This name has duplicates, add suffix
             nameIndex[baseName] = (nameIndex[baseName] or 0) + 1
             local separator = options.separator or "_"
-            local number = string.format("%02d", nameIndex[baseName])
-            item.preview = baseName .. separator .. number
+            local suffix
+            if incrementMode == "letter" then
+                suffix = Common.numberToLetters(nameIndex[baseName])
+            else  -- "number" mode (default)
+                suffix = string.format("%02d", nameIndex[baseName])
+            end
+            item.preview = baseName .. separator .. suffix
         else
-            -- Unique name or auto-increment disabled
+            -- Unique name or increment disabled
             item.preview = baseName
         end
         

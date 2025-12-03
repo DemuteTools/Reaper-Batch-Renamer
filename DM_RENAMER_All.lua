@@ -168,9 +168,9 @@ function All.updatePreview(list, findText, replaceText, options)
         Tracks.updatePreview(itemsByType["Track"], findText, replaceText, options)
     end
 
-    -- Apply auto-increment if enabled
-    if options.autoIncrement then
-        Common.handleDuplicateNames(list, true)
+    -- Apply increment mode if not "off"
+    if options.incrementMode and options.incrementMode ~= "off" then
+        Common.handleDuplicateNames(list, options.incrementMode)
     end
 end
 
