@@ -1469,16 +1469,16 @@ local function loop()
                 state.needsPreview = true  -- Trigger automatic preview
             end
             
-            -- Pattern Help button
-            reaper.ImGui_SameLine(ctx)
-            if reaper.ImGui_Button(ctx, "?") then
-                state.showPatternHelp = not state.showPatternHelp
-            end
-            if reaper.ImGui_IsItemHovered(ctx) then
-                reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Lua Pattern Reference & Tester")
-                reaper.ImGui_EndTooltip(ctx)
-            end
+            -- Pattern Help button (hidden - Lua patterns disabled for now)
+            -- reaper.ImGui_SameLine(ctx)
+            -- if reaper.ImGui_Button(ctx, "?") then
+            --     state.showPatternHelp = not state.showPatternHelp
+            -- end
+            -- if reaper.ImGui_IsItemHovered(ctx) then
+            --     reaper.ImGui_BeginTooltip(ctx)
+            --     reaper.ImGui_Text(ctx, "Lua Pattern Reference & Tester")
+            --     reaper.ImGui_EndTooltip(ctx)
+            -- end
             
             reaper.ImGui_Text(ctx, "Replace:")
             reaper.ImGui_SameLine(ctx)
@@ -1513,45 +1513,41 @@ local function loop()
             
             reaper.ImGui_Separator(ctx)
             
-            -- Pattern dropdown
-            reaper.ImGui_Text(ctx, "Pattern:")
-            reaper.ImGui_SameLine(ctx)
-            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, 250)
-            
-            local patternDisplay = state.selectedPattern and state.selectedPattern.name or "Choose pattern..."
-            if reaper.ImGui_BeginCombo(ctx, "##PatternPresets", patternDisplay) then
-                for _, pattern in ipairs(state.commonPatterns) do
-                    -- Filter patterns by context
-                    local showPattern = pattern.context == "all" or 
-                                       pattern.context == state.currentTab or 
-                                       not pattern.context
-                    
-                    if showPattern then
-                        local isSelected = (state.selectedPattern == pattern)
-                        local displayText = pattern.name .. " - " .. pattern.desc
-                        -- Add context indicator for non-universal patterns
-                        if pattern.context and pattern.context ~= "all" then
-                            displayText = "[" .. pattern.context .. "] " .. displayText
-                        end
-                        
-                        if reaper.ImGui_Selectable(ctx, displayText, isSelected) then
-                            state.selectedPattern = pattern
-                            if pattern.name ~= "-- None --" then
-                                state.findText = pattern.pattern
-                                state.replaceText = pattern.replace
-                                state.useLuaPatterns = true
-                                state.patternValid, state.patternError = Common.validatePattern(pattern.pattern)
-                            end
-                            state.needsPreview = true
-                        end
-                        if isSelected then
-                            reaper.ImGui_SetItemDefaultFocus(ctx)
-                        end
-                    end
-                end
-                reaper.ImGui_EndCombo(ctx)
-            end
+            -- Pattern dropdown (hidden - Lua patterns disabled for now)
+            -- reaper.ImGui_Text(ctx, "Pattern:")
+            -- reaper.ImGui_SameLine(ctx)
+            -- reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            -- reaper.ImGui_SetNextItemWidth(ctx, 250)
+            --
+            -- local patternDisplay = state.selectedPattern and state.selectedPattern.name or "Choose pattern..."
+            -- if reaper.ImGui_BeginCombo(ctx, "##PatternPresets", patternDisplay) then
+            --     for _, pattern in ipairs(state.commonPatterns) do
+            --         local showPattern = pattern.context == "all" or
+            --                            pattern.context == state.currentTab or
+            --                            not pattern.context
+            --         if showPattern then
+            --             local isSelected = (state.selectedPattern == pattern)
+            --             local displayText = pattern.name .. " - " .. pattern.desc
+            --             if pattern.context and pattern.context ~= "all" then
+            --                 displayText = "[" .. pattern.context .. "] " .. displayText
+            --             end
+            --             if reaper.ImGui_Selectable(ctx, displayText, isSelected) then
+            --                 state.selectedPattern = pattern
+            --                 if pattern.name ~= "-- None --" then
+            --                     state.findText = pattern.pattern
+            --                     state.replaceText = pattern.replace
+            --                     state.useLuaPatterns = true
+            --                     state.patternValid, state.patternError = Common.validatePattern(pattern.pattern)
+            --                 end
+            --                 state.needsPreview = true
+            --             end
+            --             if isSelected then
+            --                 reaper.ImGui_SetItemDefaultFocus(ctx)
+            --             end
+            --         end
+            --     end
+            --     reaper.ImGui_EndCombo(ctx)
+            -- end
             
             -- Operation dropdown
             reaper.ImGui_Text(ctx, "Operation:")
@@ -1741,34 +1737,36 @@ local function loop()
                 reaper.ImGui_EndTooltip(ctx)
             end
             
-            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            local patternChanged, newPattern = reaper.ImGui_Checkbox(ctx, "Use Lua Patterns", state.useLuaPatterns)
-            if patternChanged then
-                state.useLuaPatterns = newPattern
-                if newPattern then
-                    state.patternValid, state.patternError = Common.validatePattern(state.findText)
-                else
-                    state.patternValid = true
-                    state.patternError = ""
-                end
-                state.needsPreview = true
-            end
-            if reaper.ImGui_IsItemHovered(ctx) then
-                reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Enable Lua regular expressions for advanced pattern matching")
-                reaper.ImGui_EndTooltip(ctx)
-            end
+            -- Use Lua Patterns checkbox (hidden - Lua patterns disabled for now)
+            -- reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            -- local patternChanged, newPattern = reaper.ImGui_Checkbox(ctx, "Use Lua Patterns", state.useLuaPatterns)
+            -- if patternChanged then
+            --     state.useLuaPatterns = newPattern
+            --     if newPattern then
+            --         state.patternValid, state.patternError = Common.validatePattern(state.findText)
+            --     else
+            --         state.patternValid = true
+            --         state.patternError = ""
+            --     end
+            --     state.needsPreview = true
+            -- end
+            -- if reaper.ImGui_IsItemHovered(ctx) then
+            --     reaper.ImGui_BeginTooltip(ctx)
+            --     reaper.ImGui_Text(ctx, "Enable Lua regular expressions for advanced pattern matching")
+            --     reaper.ImGui_EndTooltip(ctx)
+            -- end
             
-            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            local autoChanged, newAuto = reaper.ImGui_Checkbox(ctx, "Auto-select changed", state.autoSelectChanged)
-            if autoChanged then
-                state.autoSelectChanged = newAuto
-            end
-            if reaper.ImGui_IsItemHovered(ctx) then
-                reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Automatically check items that have changes")
-                reaper.ImGui_EndTooltip(ctx)
-            end
+            -- Auto-select changed (hidden - hardcoded to true, always auto-check changed items)
+            -- reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            -- local autoChanged, newAuto = reaper.ImGui_Checkbox(ctx, "Auto-select changed", state.autoSelectChanged)
+            -- if autoChanged then
+            --     state.autoSelectChanged = newAuto
+            -- end
+            -- if reaper.ImGui_IsItemHovered(ctx) then
+            --     reaper.ImGui_BeginTooltip(ctx)
+            --     reaper.ImGui_Text(ctx, "Automatically check items that have changes")
+            --     reaper.ImGui_EndTooltip(ctx)
+            -- end
             
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
             local jumpChanged, newJump = reaper.ImGui_Checkbox(ctx, "Jump to position on select", state.jumpToPosition)
