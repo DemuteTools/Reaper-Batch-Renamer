@@ -1,6 +1,8 @@
 -- DM RENAMER for Reaper
 -- Main Interface Script
 
+local DM_RENAMER_VERSION = "0.5.0-beta"
+
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
 local Common = dofile(script_path .. "DM_RENAMER_Common.lua")
@@ -2231,13 +2233,20 @@ local function loop()
         
         -- Apply Changes button (full width at bottom)
         reaper.ImGui_Separator(ctx)
-        
+
         -- Button and warning on same line
         if reaper.ImGui_Button(ctx, "Apply Changes") then
             applyChanges()
         end
-        
-        
+
+        -- Version label (bottom-right)
+        local versionText = "v" .. DM_RENAMER_VERSION
+        local windowWidth = reaper.ImGui_GetWindowWidth(ctx)
+        local textWidth = reaper.ImGui_CalcTextSize(ctx, versionText)
+        reaper.ImGui_SameLine(ctx)
+        reaper.ImGui_SetCursorPosX(ctx, windowWidth - textWidth - 15)
+        reaper.ImGui_TextDisabled(ctx, versionText)
+
         reaper.ImGui_End(ctx)
     end
     
