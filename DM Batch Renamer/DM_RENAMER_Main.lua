@@ -1,6 +1,6 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.6.0-beta
+-- @version 0.6.1-beta
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -19,7 +19,7 @@
 --   and markers at once with live preview before applying changes.
 --   Supports find/replace, case transformations, Lua patterns, presets, and more.
 
-local DM_RENAMER_VERSION = "0.6.0-beta"
+local DM_RENAMER_VERSION = "0.6.1-beta"
 
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
@@ -2116,6 +2116,7 @@ local function loop()
                     end
                 end
 
+                local editInputActive = false
                 for i, item in ipairs(state.currentList) do
                     reaper.ImGui_TableNextRow(ctx)
                     
@@ -2158,11 +2159,15 @@ local function loop()
                             
                             reaper.ImGui_SetNextItemWidth(ctx, -1) -- Use full column width
                             local changed, newText = reaper.ImGui_InputText(ctx, "##editCurrent" .. i, state.editingText)
-                            
+
+                            if reaper.ImGui_IsItemActive(ctx) then
+                                editInputActive = true
+                            end
+
                             if changed then
                                 state.editingText = newText
                             end
-                            
+
                             if reaper.ImGui_IsItemDeactivatedAfterEdit(ctx) then
                                 applyDirectEdit(i, state.editingText)
                                 state.editingIndex = nil
@@ -2222,11 +2227,15 @@ local function loop()
                             
                             reaper.ImGui_SetNextItemWidth(ctx, -1) -- Use full column width
                             local changed, newText = reaper.ImGui_InputText(ctx, "##editCurrent" .. i, state.editingText)
-                            
+
+                            if reaper.ImGui_IsItemActive(ctx) then
+                                editInputActive = true
+                            end
+
                             if changed then
                                 state.editingText = newText
                             end
-                            
+
                             if reaper.ImGui_IsItemDeactivatedAfterEdit(ctx) then
                                 applyDirectEdit(i, state.editingText)
                                 state.editingIndex = nil
@@ -2306,8 +2315,7 @@ local function loop()
                 
                 -- Cancel editing if clicking elsewhere
                 if state.editingIndex and reaper.ImGui_IsMouseClicked(ctx, 0) then
-                    local is_input_active = reaper.ImGui_IsItemActive(ctx)
-                    if not is_input_active then
+                    if not editInputActive then
                         if state.editingText ~= state.editingOriginal and state.editingText ~= "" then
                             applyDirectEdit(state.editingIndex, state.editingText)
                         end
