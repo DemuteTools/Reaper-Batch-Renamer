@@ -1,6 +1,6 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.5.6-beta
+-- @version 0.6.0-beta
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -19,7 +19,7 @@
 --   and markers at once with live preview before applying changes.
 --   Supports find/replace, case transformations, Lua patterns, presets, and more.
 
-local DM_RENAMER_VERSION = "0.5.6-beta"
+local DM_RENAMER_VERSION = "0.6.0-beta"
 
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
@@ -190,6 +190,11 @@ end
 
 -- Initialize
 Settings.load()
+
+-- If Folder Items tab is hidden, default to All tab
+if Settings.current.folderItemUser == false and state.currentTab == "Folder Items" then
+    state.currentTab = "All"
+end
 
 -- Load folder items settings if they exist
 if Settings.current.folderItems then
@@ -1298,18 +1303,20 @@ local function loop()
         
         -- Tabs (new order: Folder Items first, then All, then the rest)
         if reaper.ImGui_BeginTabBar(ctx, "MainTabs") then
-            -- 1. Folder Items (first and default)
-            if reaper.ImGui_BeginTabItem(ctx, "Folder Items") then
-                if state.currentTab ~= "Folder Items" then
-                    state.currentTab = "Folder Items"
-                    state.needsRefresh = true
-                    state.needsPreview = true
-                    state.lastFolderItemSelection = {}  -- Reset selection tracking
-                    -- Clear any region/marker selections
-                    reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)
-                    reaper.SetExtState("DM_RENAMER", "SelectedMarkers", "", false)
+            -- 1. Folder Items (first and default) - only show if not explicitly hidden
+            if Settings.current.folderItemUser ~= false then
+                if reaper.ImGui_BeginTabItem(ctx, "Folder Items") then
+                    if state.currentTab ~= "Folder Items" then
+                        state.currentTab = "Folder Items"
+                        state.needsRefresh = true
+                        state.needsPreview = true
+                        state.lastFolderItemSelection = {}  -- Reset selection tracking
+                        -- Clear any region/marker selections
+                        reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)
+                        reaper.SetExtState("DM_RENAMER", "SelectedMarkers", "", false)
+                    end
+                    reaper.ImGui_EndTabItem(ctx)
                 end
-                reaper.ImGui_EndTabItem(ctx)
             end
 
             -- 2. All (new tab)
@@ -1386,18 +1393,53 @@ local function loop()
         local windowWidth = reaper.ImGui_GetContentRegionAvail(ctx)
         local leftColumnWidth = 400
         
+        -- Check if we're showing folder item onboarding (used to skip controls/preview)
+        local showFolderItemOnboarding = (state.currentTab == "Folder Items" and Settings.current.folderItemUser == nil)
+
         -- LEFT COLUMN (Options)
         -- Adjust height to account for preset section above
         if reaper.ImGui_BeginChild(ctx, "LeftColumn", leftColumnWidth, -30, reaper.ImGui_WindowFlags_None()) then
             -- Define alignment constants
             local labelWidth = 120
             local controlPosX = labelWidth + 10
-            
+
             
             -- FOLDER ITEMS SPECIFIC SECTION
             if state.currentTab == "Folder Items" then
-                --reaper.ImGui_Separator(ctx)
-                
+                -- Onboarding gate: show intro message if user hasn't confirmed yet
+                if Settings.current.folderItemUser == nil then
+                    reaper.ImGui_Spacing(ctx)
+                    reaper.ImGui_Spacing(ctx)
+                    reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Welcome to the Folder Items tab!")
+                    reaper.ImGui_Spacing(ctx)
+                    reaper.ImGui_TextWrapped(ctx, "This tab is designed for users of NVK Workflow tools or similar setups (like RenderBlock) who are familiar with the concept of Folder Items (empty items used as naming containers).")
+                    reaper.ImGui_Spacing(ctx)
+                    reaper.ImGui_TextWrapped(ctx, "If you're not sure what Folder Items are, you probably don't need this tab and can safely hide it.")
+                    reaper.ImGui_Spacing(ctx)
+                    reaper.ImGui_Spacing(ctx)
+
+                    if reaper.ImGui_Button(ctx, "I'm a Folder Item user", 250, 30) then
+                        Settings.current.folderItemUser = true
+                        Settings.save()
+                        state.needsRefresh = true
+                        state.needsPreview = true
+                    end
+
+                    reaper.ImGui_Spacing(ctx)
+
+                    if reaper.ImGui_Button(ctx, "Hide this tab", 250, 30) then
+                        Settings.current.folderItemUser = false
+                        Settings.save()
+                        -- Switch to another tab since this one will be hidden
+                        state.currentTab = "All"
+                        state.needsRefresh = true
+                        state.needsPreview = true
+                    end
+                end -- end onboarding gate
+            end -- end Folder Items onboarding check
+
+            -- Normal Folder Items controls (only when user is confirmed)
+            if state.currentTab == "Folder Items" and Settings.current.folderItemUser == true then
                 -- Pattern dropdown
                 reaper.ImGui_Text(ctx, "Pattern:")
                 reaper.ImGui_SameLine(ctx)
@@ -1523,6 +1565,8 @@ local function loop()
             end
 
             -- TRANSFORMATIONS SECTION (for ALL tabs including Folder Items)
+            -- Skip if showing folder item onboarding
+          if not showFolderItemOnboarding then
             -- reaper.ImGui_Text(ctx, "TRANSFORMATIONS")
             -- reaper.ImGui_Separator(ctx)
             
@@ -1922,14 +1966,17 @@ local function loop()
                 end
             end
             
+          end -- end if not showFolderItemOnboarding
+
             reaper.ImGui_EndChild(ctx)
         end
-        
+
         -- RIGHT COLUMN (List with two-column table)
         reaper.ImGui_SameLine(ctx)
         local rightColumnWidth = windowWidth - leftColumnWidth - 10
         -- Adjust height to account for preset section above
         if reaper.ImGui_BeginChild(ctx, "RightColumn", rightColumnWidth, -30, reaper.ImGui_WindowFlags_None()) then
+          if not showFolderItemOnboarding then
             -- Table display with full height
             local tableFlags = reaper.ImGui_TableFlags_Borders() |
                                reaper.ImGui_TableFlags_RowBg() |
@@ -2307,18 +2354,21 @@ local function loop()
                 
                 reaper.ImGui_EndTable(ctx)
             end
+          end -- end if not showFolderItemOnboarding (right column)
             reaper.ImGui_EndChild(ctx)
         end
-        
+
         -- Removed pattern help window - no longer needed with operations
         
         -- Apply Changes button (full width at bottom)
+      if not showFolderItemOnboarding then
         reaper.ImGui_Separator(ctx)
 
         -- Button and warning on same line
         if reaper.ImGui_Button(ctx, "Apply Changes") then
             applyChanges()
         end
+      end
 
         -- Version label (bottom-right)
         local versionText = "v" .. DM_RENAMER_VERSION

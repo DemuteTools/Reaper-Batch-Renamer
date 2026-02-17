@@ -92,6 +92,9 @@ function Settings.getDefaultSettings()
             incrementMode = "number",  -- "off", "number", or "letter"
             excludeTag = ""
         },
+
+        -- Folder Item user flag: nil = never seen onboarding, true = confirmed user, false = tab hidden
+        folderItemUser = nil,
         
         -- UI Appearance settings
         appearance = {

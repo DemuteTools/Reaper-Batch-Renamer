@@ -1,287 +1,500 @@
-# DM_RENAMER - Quick Guide
+# DM Batch Renamer — User Manual
 
-## What is DM_RENAMER?
+> Batch renaming tool for REAPER.
+> Rename multiple items, tracks, regions, and markers at once with live preview before applying changes.
 
-Batch rename tool for REAPER - rename multiple items, tracks, regions, and markers at once with preview before applying.
+**Version:** 0.5.6-beta
+**Author:** Anthony Deneyer
 
-## Quick Start
+---
 
-1. Run `DM_RENAMER_Main.lua` from Actions menu
-2. Select tab for what to rename (Items, Tracks, Regions, Markers, etc.)
-3. Enter find/replace or choose operation
-4. Preview → Select items → Apply
+## Table of Contents
+
+- [Installation](#installation)
+- [Getting Started](#getting-started)
+- [Interface Overview](#interface-overview)
+  - [Menu Bar](#menu-bar)
+  - [Presets Bar](#presets-bar)
+  - [Tabs](#tabs)
+  - [Left Panel — Controls](#left-panel--controls)
+  - [Right Panel — Preview Table](#right-panel--preview-table)
+- [Tabs in Detail](#tabs-in-detail)
+  - [Folder Items](#folder-items)
+  - [All](#all)
+  - [Media Items](#media-items)
+  - [Regions](#regions)
+  - [Markers](#markers)
+  - [Tracks](#tracks)
+- [Renaming Controls](#renaming-controls)
+  - [Find and Replace](#find-and-replace)
+  - [Prefix and Suffix](#prefix-and-suffix)
+  - [Operations](#operations)
+  - [Case Transformations](#case-transformations)
+  - [Replace Spaces](#replace-spaces)
+  - [Increment Mode](#increment-mode)
+- [Options](#options)
+- [Working with the Preview Table](#working-with-the-preview-table)
+  - [Selecting Items](#selecting-items)
+  - [Inline Editing](#inline-editing)
+  - [Sorting Columns](#sorting-columns)
+  - [Jump to Position](#jump-to-position)
+- [Presets](#presets)
+- [Folder Items — Advanced Usage](#folder-items--advanced-usage)
+  - [Naming Patterns](#naming-patterns)
+  - [Custom Pattern Variables](#custom-pattern-variables)
+  - [Separator Options](#separator-options)
+  - [Auto-Name Button](#auto-name-button)
+- [Exclude Tags](#exclude-tags)
+- [Selection Behavior](#selection-behavior)
+- [Appearance Settings](#appearance-settings)
+- [Companion Scripts](#companion-scripts)
+- [Keyboard Shortcuts](#keyboard-shortcuts)
+- [Common Workflows](#common-workflows)
+
+---
+
+## Installation
+
+1. Install [ReaPack](https://reapack.com/) if you don't have it already.
+2. Add the repository URL or install the script manually.
+3. In REAPER, go to **Actions > Show action list**, search for **DM Renamer**, and run **DM_RENAMER_Main.lua**.
+
+**Requirement:** [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack dependency).
+
+**Optional (recommended):** [SWS Extension](https://www.sws-extension.org/) — enables region/marker click-selection from the arrange view.
+
+---
+
+## Getting Started
+
+1. Open the script from the REAPER Actions menu.
+2. Select a tab matching what you want to rename (e.g., **Media Items**, **Tracks**).
+3. Type in the **Find** field, and optionally the **Replace** field.
+4. Watch the **Preview Table** update in real time.
+5. Check the items you want to rename (changed items are auto-checked).
+6. Click **Rename All** at the bottom of the window.
 
 ---
 
 ## Interface Overview
 
-### The 6 Tabs
-- **Folder Items** - For NVK users
-- **All** - Everything at once  
-- **Media Items** - Audio/MIDI items
-- **Regions** - Timeline regions
-- **Markers** - Timeline markers
-- **Tracks** - Track names
+The window is divided into several sections:
 
-### Main Controls
-- **Find/Replace** - Text substitution
-- **Operations** - Quick actions (Add Date, Remove Brackets, etc.)
-- **Options** - Case sensitive, whole word, patterns
-- **Preview Table** - See changes before applying
+### Menu Bar
 
-### Selection Priority
-1. Selected items/tracks (if any)
-2. Time selection (if any)
-3. All items (default)
+- **Settings > Appearance Settings** — Open the theme/color editor.
+- **Settings > Reset to Defaults** — Restore all appearance settings to defaults.
+
+### Presets Bar
+
+Located below the menu bar, visible on all tabs. Contains:
+
+- **Load Preset** dropdown — Select a saved preset or choose `-- None --` to reset.
+- **Save as** text field + **Save** button — Save the current configuration as a new preset.
+- **Override** button — Replace the currently loaded preset with the current settings (appears only when a preset is loaded).
+- **Delete** button — Delete the currently loaded preset.
+- **Settings** button (right-aligned) — Quick access to Appearance Settings.
+
+### Tabs
+
+Six tabs control which type of REAPER element you rename:
+
+| Tab | What it renames |
+|-----|----------------|
+| **Folder Items** | Empty items (no audio/MIDI content), commonly used with NVK workflows |
+| **All** | Items, tracks, regions, and markers combined in a single view |
+| **Media Items** | Audio and MIDI items |
+| **Regions** | Timeline regions |
+| **Markers** | Timeline markers |
+| **Tracks** | Track names |
+
+### Left Panel — Controls
+
+All renaming options: Find/Replace, Prefix/Suffix, Operations, Case, Replace Spaces, Increment mode, and checkboxes.
+
+### Right Panel — Preview Table
+
+A sortable table showing:
+
+- **Checkbox** — Select/deselect individual items for renaming.
+- **Current Name** — The existing name.
+- **Target Name** — What the name will become after applying the current settings.
+- **Context** (Folder Items and All tabs) — Shows region/track hierarchy information.
+- **Type** (All tab only) — Shows the element type (Media Item, Folder Item, Track, Region, Marker).
 
 ---
 
-## Basic Operations
+## Tabs in Detail
 
-### Find & Replace
-```
-Find: Audio → Replace: Track
-Result: Audio_01 becomes Track_01
-```
+### Folder Items
 
-**Options:**
-- **Case Sensitive** - Match exact case
-- **Whole Word** - Complete words only
-- **Lua Patterns** - Regex-like matching
+Designed for **empty items** (items without audio or MIDI content). These are commonly used in game audio workflows (e.g., NVK-style) to define naming from region and track hierarchies.
 
-### Quick Operations
+This tab has its own dedicated controls at the top of the left panel:
 
-| Button | What it Does | Example |
-|--------|-------------|---------|
-| Add Date | Adds YYYY-MM-DD | Guitar → Guitar_2024-01-15 |
-| Add Timestamp | Adds HH-MM-SS | Vocals → Vocals_14-30-45 |
-| Remove [Brackets] | Deletes [...] | Track [old] → Track |
-| Remove (Parens) | Deletes (...) | Bass (DI) → Bass |
+- **Pattern** — Choose a naming pattern (Simple, Hierarchical, Custom).
+- **Separator** — Choose the character between name parts.
+- **Custom pattern field** — Visible when "Custom pattern" is selected.
+- **Auto-Name** — Generate names and apply in one click.
+- **Refresh List** — Manually reload the list of folder items.
+
+See [Folder Items — Advanced Usage](#folder-items--advanced-usage) for full details.
+
+### All
+
+Displays every renamable element in a single list. The table includes a **Type** column with color-coded labels and a **Context** column.
+
+- Green: Media Item
+- Magenta: Folder Item
+- Cyan: Region
+- Yellow: Marker
+- Orange: Track
+
+### Media Items
+
+Shows all audio/MIDI items. Respects the current selection and time selection.
+
+### Regions
+
+Shows timeline regions. Supports selection via time selection or through the companion selection script (see [Companion Scripts](#companion-scripts)).
+
+### Markers
+
+Shows timeline markers. Same selection behavior as Regions.
+
+### Tracks
+
+Shows all tracks. Respects the current track selection in REAPER.
+
+---
+
+## Renaming Controls
+
+All controls below are available on **every tab**. They stack — you can combine Find/Replace with a Case transformation and a Prefix at the same time.
+
+### Find and Replace
+
+| Field | Description |
+|-------|-------------|
+| **Find** | Text to search for in the current names |
+| **Replace** | Text to substitute in place of the found text |
+
+The preview updates automatically as you type.
+
+### Prefix and Suffix
+
+| Field | Description |
+|-------|-------------|
+| **Prefix** | Text added before the name |
+| **Suffix** | Text added after the name |
+
+### Operations
+
+A dropdown with quick transformations. Select one from the list:
+
+| Operation | Effect | Example |
+|-----------|--------|---------|
+| None | No operation | — |
+| Add Date (YYYY-MM-DD) | Appends today's date | `Guitar` → `Guitar_2026-02-17` |
+| Add Timestamp (HH-MM-SS) | Appends the item's timeline position | `Vocal` → `Vocal_02-34-150` |
+| Remove [Brackets] and Content | Deletes `[...]` and everything inside | `Track [old]` → `Track ` |
+| Remove (Parentheses) and Content | Deletes `(...)` and everything inside | `Bass (DI)` → `Bass ` |
 
 ### Case Transformations
 
+A dropdown to transform the case of all names:
+
 | Style | Example |
 |-------|---------|
-| lowercase | hello world |
-| UPPERCASE | HELLO WORLD |
-| Title Case | Hello World |
-| Sentence case | Hello world |
-| camelCase | helloWorld |
-| PascalCase | HelloWorld |
-| snake_case | hello_world |
-| kebab-case | hello-world |
-| CONSTANT_CASE | HELLO_WORLD |
+| None | No change |
+| camelCase | `helloWorld` |
+| CONSTANT_CASE | `HELLO_WORLD` |
+| kebab-case | `hello-world` |
+| lowercase | `hello world` |
+| PascalCase | `HelloWorld` |
+| Sentence case | `Hello world` |
+| snake_case | `hello_world` |
+| Title Case | `Hello World` |
+| UPPERCASE | `HELLO WORLD` |
 
-### Space Replacement
-- **Underscore** - Replace spaces with _
-- **Dash** - Replace spaces with -
-- **Remove** - Delete all spaces
+### Replace Spaces
 
----
+Three toggle buttons to replace spaces in all names:
 
-## Templates & Variables
+| Button | Effect |
+|--------|--------|
+| **_** | Replace spaces with underscores |
+| **-** | Replace spaces with dashes |
+| **Remove** | Delete all spaces |
 
-### Quick Variables
-- `$num` = 1, 2, 3...
-- `$num2` = 01, 02, 03...
-- `$num3` = 001, 002, 003...
-- `$name` = Original name
-- `$NAME` = ORIGINAL NAME
-- `$Name` = Original Name
-- `$date` = 2024-01-15
-- `$time` = 14-30-45
+Click the active button again to toggle it off.
 
-### Template Examples
-```
-Template: Track_$num2_$Name
-Result: Track_01_Guitar, Track_02_Bass
+### Increment Mode
 
-Template: $date_$name_Take$num
-Result: 2024-01-15_vocal_Take1
-```
+Handles duplicate names by appending a suffix. Choose one:
+
+| Mode | Behavior | Example |
+|------|----------|---------|
+| **Off** | No duplicate handling | `Drums`, `Drums`, `Drums` |
+| **Number** | Appends `_01`, `_02`, etc. | `Drums_01`, `Drums_02`, `Drums_03` |
+| **Letter** | Appends `_A`, `_B`, ..., `_Z`, `_AA`, etc. | `Drums_A`, `Drums_B`, `Drums_C` |
 
 ---
 
-## Lua Patterns (Most Useful)
+## Options
 
-### Pattern Library
-
-| Pattern | Find | Replace | Result |
-|---------|------|---------|---------|
-| Remove prefix numbers | `^%d+[%.%s%-_]*` | | 01_Track → Track |
-| Remove extension | `(.+)%.%w+$` | `%1` | song.wav → song |
-| Extract [brackets] | `.*%[(.-)%].*` | `%1` | Name [keep] this → keep |
-| Clean spaces | `%s+` | ` ` | too    many → too many |
-| Remove special chars | `[^%w%s]` | | Hello@World! → HelloWorld |
-
-### Quick Syntax
-- `%d` = digit
-- `%a` = letter
-- `%s` = space
-- `%w` = alphanumeric
-- `^` = start
-- `$` = end
-- `+` = one or more
-- `*` = zero or more
-
-### Custom Pattern Example
-```
-Find: (%w+)_(%d+)
-Replace: %2_%1
-Result: Bass_03 → 03_Bass
-```
+| Option | Description |
+|--------|-------------|
+| **Case Sensitive** | Match exact case when searching (e.g., `Audio` does not match `audio`) |
+| **Whole Word** | Only match complete words (e.g., `Bass` does not match `Bassist`) |
+| **Jump to position on select** | When you click an item in the preview table, the REAPER arrange view scrolls to that item's position |
 
 ---
 
-## Special Features
+## Working with the Preview Table
 
-### Folder Items Naming
+### Selecting Items
 
-**Three Modes:**
-1. **Simple** - Basic sequential (Section_01, Section_02)
-2. **Hierarchical** - Region_Track names (Verse_Guitar, Chorus_Bass)
-3. **Custom** - Use pattern: `$region1_$track1`
+Three buttons below the options section control which items are checked:
 
-**Variables:**
-- `$region1`, `$region2`, `$region3`... - Regions by hierarchy (1=parent, 2=first child, etc.)
-- `$track1`, `$track2`, `$track3`... - Tracks by hierarchy (1=parent, 2=child, etc.)
-- `$position` - Item position
-- `$index` - Item index
+- **Select All** — Check every item in the list.
+- **Select None** — Uncheck every item.
+- **Select Changed** — Check only items where the target name differs from the current name.
+
+Items with changes are automatically checked when you modify any renaming parameter.
+
+### Inline Editing
+
+**Double-click** any name in the Current Name or Target Name column to edit it directly. Press **Enter** to confirm or **Escape** to cancel.
+
+- Editing a **Current Name** renames the item immediately.
+- Editing a **Target Name** sets a custom preview name for that item.
+
+### Sorting Columns
+
+Click any column header (Current Name, Target Name, Context, Type) to sort the list. Click again to toggle ascending/descending. A **▲** or **▼** indicator shows the current sort direction.
+
+### Jump to Position
+
+When **Jump to position on select** is enabled, clicking a row in the preview table moves the REAPER arrange view to that element's timeline position.
+
+---
+
+## Presets
+
+Presets save your entire renaming configuration so you can reuse it later.
+
+### What a Preset Saves
+
+- Find/Replace text
+- Case sensitivity, Whole word settings
+- Operation selection
+- Case transformation
+- Prefix and Suffix
+- Increment mode
+- Space replacement mode
+- Folder Items pattern, separator, and custom pattern
+- Exclude tags
+- Jump to position setting
+
+### How to Use Presets
+
+1. **Save:** Configure your settings, type a name in the "Save as" field, click **Save**.
+2. **Load:** Select a preset from the "Load Preset" dropdown. All settings are restored.
+3. **Override:** Modify settings while a preset is loaded, then click **Override** to update it.
+4. **Delete:** Select a preset, click **Delete** to remove it.
+5. **Clear:** Select `-- None --` from the dropdown to reset all fields to defaults.
+
+Presets are stored in REAPER's `Data` directory (`<REAPER Resource Path>/Data/DM_RENAMER_Presets.dat`), so they survive script updates.
+
+The last used preset is automatically restored when you reopen the script.
+
+---
+
+## Folder Items — Advanced Usage
+
+### Naming Patterns
+
+| Pattern | Description | Example output |
+|---------|-------------|----------------|
+| **Simple** | First region + direct track name | `SFX_Dirt` |
+| **Hierarchical** | All region levels + all track levels | `SFX_Impact_Dirt_Foley` |
+| **Custom** | User-defined pattern with variables | Depends on your pattern |
+
+### Custom Pattern Variables
+
+When you select the **Custom pattern** mode, you build a naming template using these variables:
+
+| Variable | Description |
+|----------|-------------|
+| `$region1` | Parent region (largest region containing the item) |
+| `$region2` | First child region |
+| `$region3` | Second child region (and so on...) |
+| `$track1` | Top-level parent track |
+| `$track2` | First child track |
+| `$track3` | Second child track (and so on...) |
+| `$position` | Item's timeline position |
+| `$index` | Item's index in the list |
 
 **Examples:**
-- `$region1_$track1` → "sfx_dirt"
-- `$region2_$region3` → "boss_attack"
-- `$track2_$region1` → "grass_sfx"
 
-### Presets
+| Pattern | Result |
+|---------|--------|
+| `$region1_$track1` | `sfx_dirt` |
+| `$region2_$region3` | `boss_attack` |
+| `$track2_$region1` | `grass_sfx` |
 
-**Save Current Setup:**
-1. Configure all settings
-2. Click "Save Preset"
-3. Name it (e.g., "Clean Import")
+### Separator Options
 
-**Load Preset:**
-1. Click "Load Preset"
-2. Select from list
-3. All settings restored
+Choose the character that joins name parts:
 
-### Exclude Tags
+- `_` (underscore) — default
+- `-` (dash)
+- ` ` (space)
+- Any custom text typed in the separator field
 
-Skip items starting with specific tags:
-```
-Exclude: TEMP OLD SKIP
-Ignores: TEMP_Guitar, OLD_Bass, SKIP_Drums
-```
+### Auto-Name Button
 
-### Auto-Increment
+Click **Auto-Name** to generate and apply names in one step:
 
-Prevents duplicates automatically:
-```
-Renaming multiple to "Drums":
-→ Drums_01, Drums_02, Drums_03
-```
+1. If items are checked, only those are renamed.
+2. If no items are checked, all items with changes are auto-checked and renamed.
 
 ---
 
-## Common Tasks
+## Exclude Tags
 
-### Clean Imported Session
-1. Pattern: Remove prefix numbers
-2. Case: Title Case  
-3. Space: Replace with underscore
-```
-01 - raw GUITAR track → Raw_Guitar_Track
-```
+Enter space-separated tags in the **Settings** window under **Exclude Tags**. Any item, region, or track whose name **starts with** one of these tags is excluded from the renaming list.
 
-### Add Track Numbers
-Template: `$num2_$Name`
-```
-Guitar → 01_Guitar
-Bass → 02_Bass
-```
+**Example:** If you set exclude tags to `TEMP OLD SKIP`, then:
 
-### Remove Take Numbers
-Pattern: Remove take number (from library)
-```
-Guitar (1) → Guitar
-Vocals (2) → Vocals
-```
-
-### Export Stem Naming
-Template: `ProjectName_$num2_$NAME`
-```
-drums → ProjectName_01_DRUMS
-bass → ProjectName_02_BASS
-```
-
-### Organize by Regions
-1. Create regions (Verse, Chorus, Bridge)
-2. Folder Items tab → Hierarchical mode
-3. Auto-generates: Verse_Guitar, Chorus_Guitar
+- `TEMP_Guitar` — excluded
+- `OLD_Bass` — excluded
+- `SKIP_Drums` — excluded
+- `My_Guitar` — included
 
 ---
 
-## Quick Tips
+## Selection Behavior
 
-### Efficiency
-- **Double-click** any name to edit directly
-- **Click item** to jump to its position
-- **Time selection** to limit scope
-- **Save presets** for repeated tasks
+The tool automatically detects your current selection in REAPER:
 
-### Selection Tips
-- Select items → Only those renamed
-- Time selection → Only items in range
-- No selection → All items shown
+| Tab | What is detected |
+|-----|-----------------|
+| **Media Items** / **Folder Items** | Selected items, then time selection, then all items |
+| **Tracks** | Selected tracks, or all tracks if none selected |
+| **Regions** / **Markers** | Time selection, or companion script selection, or all |
+| **All** | Any combination of item, track, or time selection |
 
----
+**Priority order:**
 
-## Pattern Cheat Sheet
-
-### Most Common Patterns
-```
-Remove numbers: %d+
-Remove spaces: %s
-Any letter: %a
-Any digit: %d
-Start of string: ^
-End of string: $
-```
-
-### Useful Combinations
-```
-^%d+%s*%-*%s*   (Remove "01 - " prefixes)
-%s*%(%d+%)$     (Remove "(1)" suffixes)
-%[(.-)%]        (Capture bracket content)
-```
+1. Explicit selection (selected items/tracks) takes precedence.
+2. Time selection acts as a filter.
+3. If nothing is selected, all elements are shown.
 
 ---
 
-## Quick Reference
+## Appearance Settings
 
-### Variables
-| Variable | Output |
+Open via **Settings > Appearance Settings** or `Ctrl+,` or the **Settings** button.
+
+### Colors
+
+- **Button Color** — Primary accent color for buttons, tabs, checkboxes, and sliders. Hover and highlight colors are computed automatically.
+- **Background Color** — Window background.
+- **Frame Color** — Input field backgrounds.
+- **Text Color** — All text in the interface.
+
+### Style
+
+- **UI Rounding** — Corner radius for buttons and inputs.
+- **Frame Rounding** — Corner radius for the window frame.
+- **Item Spacing** — Vertical space between UI elements.
+- **Window Padding** — Margin inside the window edges.
+
+### Scale
+
+- **Font Size** — Base font size (requires restarting the script to take effect).
+
+---
+
+## Companion Scripts
+
+Two additional scripts are included for region/marker selection in the arrange view:
+
+| Script | Purpose |
+|--------|---------|
+| **DM_RENAMER_TrackRegionMarkerSelection.lua** | Bind this to a mouse modifier or toolbar button. Clicking a region or marker in the arrange view selects it for the Renamer. Hold **Shift** to multi-select. |
+| **DM_RENAMER_ClearRegionMarkerSelection.lua** | Clears the current region/marker selection. |
+
+**Setup:** In REAPER, go to **Actions > Show action list**, find these scripts, and assign them to a keyboard shortcut or mouse modifier.
+
+These scripts require the **SWS Extension** for full functionality.
+
+---
+
+## Keyboard Shortcuts
+
+| Shortcut | Action |
 |----------|--------|
-| $num | 1, 2, 3 |
-| $num2 | 01, 02 |
-| $name | original |
-| $NAME | ORIGINAL |
-| $date | 2024-01-15 |
-
-### Operations
-| Operation | Action |
-|-----------|--------|
-| Find/Replace | Text substitution |
-| Add Date | Append date |
-| Remove [] | Delete brackets |
-| Remove () | Delete parentheses |
-
-### Options
-| Option | Effect |
-|--------|--------|
-| Case Sensitive | Exact case match |
-| Whole Word | Complete words only |
-| Lua Patterns | Regex matching |
-| Auto-increment | Prevent duplicates |
+| `Ctrl+,` | Open Appearance Settings |
+| `Escape` | Cancel inline editing, or close the window if nothing is active |
+| `Enter` | Confirm inline editing |
+| `Double-click` | Edit a name directly in the preview table |
 
 ---
+
+## Common Workflows
+
+### Clean Up Imported Session Names
+
+1. Open the **Media Items** or **Tracks** tab.
+2. Set **Find** to the unwanted prefix (e.g., `Track `).
+3. Leave **Replace** empty.
+4. Set **Case** to **Title Case**.
+5. Set **Replace Spaces** to **_**.
+6. Click **Rename All**.
+
+**Before:** `Track 01 - raw GUITAR` → **After:** `Raw_Guitar`
+
+### Add Sequential Numbers to Tracks
+
+1. Open the **Tracks** tab.
+2. Set **Prefix** to a numbering prefix (e.g., `01_`).
+3. Or use **Find** with empty, **Replace** with empty, and **Increment Mode** set to **Number** — all tracks get unique `_01`, `_02` suffixes.
+
+### Remove Take Numbers from Items
+
+1. Open the **Media Items** tab.
+2. Set **Find** to ` (` and **Replace** to empty — removes content like `(1)`, `(2)`.
+3. Or use the **Remove (Parentheses) and Content** operation.
+
+**Before:** `Guitar (1)` → **After:** `Guitar`
+
+### Prepare Stems for Export
+
+1. Open the **Tracks** tab.
+2. Set **Case** to **UPPERCASE**.
+3. Set **Replace spaces** to **_**.
+4. Set **Prefix** to your project name (e.g., `MyProject_`).
+5. Click **Rename All**.
+
+**Before:** `lead vocals` → **After:** `MyProject_LEAD_VOCALS`
+
+### Name Folder Items for Game Audio
+
+1. Create regions in your timeline (e.g., `SFX`, `Music`, `VO`).
+2. Organize tracks in folders (e.g., `Footsteps > Dirt`, `Footsteps > Grass`).
+3. Open the **Folder Items** tab.
+4. Select **Hierarchical** pattern.
+5. Set the separator to `_`.
+6. Click **Auto-Name**.
+
+**Result:** `SFX_Footsteps_Dirt`, `SFX_Footsteps_Grass`
+
+### Save and Reuse a Configuration
+
+1. Set up your renaming parameters.
+2. Type a name in the "Save as" field (e.g., `Game Audio Export`).
+3. Click **Save**.
+4. Next time, select `Game Audio Export` from the **Load Preset** dropdown.

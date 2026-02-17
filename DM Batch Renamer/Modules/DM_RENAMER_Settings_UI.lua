@@ -107,7 +107,29 @@ local function showGeneralSettings()
     reaper.ImGui_TextColored(ctx, 0xAAAA00FF, 
         "Items/Regions/Tracks starting with these tags will be excluded from renaming")
     reaper.ImGui_Text(ctx, "Example: // # temp_")
-    
+
+    reaper.ImGui_Separator(ctx)
+
+    -- Folder Items tab visibility
+    reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Folder Items Tab")
+    reaper.ImGui_Separator(ctx)
+
+    local folderItemUser = Settings.current.folderItemUser
+    local showTab = (folderItemUser ~= false)
+    local rv, newShowTab = reaper.ImGui_Checkbox(ctx, "Show Folder Items tab", showTab)
+    if rv then
+        if newShowTab then
+            -- Re-enable: set to nil so onboarding shows again, or true if they saw it before
+            Settings.current.folderItemUser = true
+        else
+            Settings.current.folderItemUser = false
+        end
+        Settings.save()
+    end
+
+    reaper.ImGui_TextColored(ctx, 0xAAAA00FF,
+        "The Folder Items tab is for NVK/RenderBlock workflows using empty items as naming containers.")
+
     reaper.ImGui_Separator(ctx)
 end
 
