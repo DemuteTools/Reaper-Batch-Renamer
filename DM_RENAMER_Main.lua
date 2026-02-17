@@ -1,7 +1,7 @@
 -- DM RENAMER for Reaper
 -- Main Interface Script
 
-local DM_RENAMER_VERSION = "0.5.0-beta"
+local DM_RENAMER_VERSION = "0.5.5-beta"
 
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
