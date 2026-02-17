@@ -1,7 +1,7 @@
 -- DM RENAMER for Reaper
 -- Main Interface Script
 
-local DM_RENAMER_VERSION = "0.5.5-beta"
+local DM_RENAMER_VERSION = "0.5.6-beta"
 
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
@@ -1186,6 +1186,22 @@ local function loop()
                             end
                         else
                             state.selectedPreset = nil
+                            -- Reset all preset fields to defaults
+                            state.findText = ""
+                            state.replaceText = ""
+                            state.prefix = ""
+                            state.suffix = ""
+                            state.operation = "none"
+                            state.transformCase = "none"
+                            state.caseSensitive = false
+                            state.wholeWord = false
+                            state.useLuaPatterns = false
+                            state.selectedPattern = nil
+                            state.patternValid = true
+                            state.patternError = ""
+                            state.spaceReplacement = ""
+                            state.folderItemPattern = "hierarchical"
+                            state.needsPreview = true
                             -- Clear last used preset
                             Settings.current.lastPreset = nil
                             Settings.save()
