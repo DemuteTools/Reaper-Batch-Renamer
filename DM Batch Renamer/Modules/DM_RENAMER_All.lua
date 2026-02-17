@@ -1,3 +1,4 @@
+-- @noindex
 -- DM RENAMER - All Module
 -- Combines all element types in a single view
 

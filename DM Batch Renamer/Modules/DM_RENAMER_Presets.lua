@@ -1,10 +1,15 @@
+-- @noindex
 -- DM RENAMER - Presets Module
 -- Save and load renaming configurations
 
 local Presets = {}
 
-local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
-local presets_path = script_path .. "DM_RENAMER_Presets.dat"
+-- Store presets in REAPER's resource path (survives package updates)
+local sep = package.config:sub(1, 1)
+local presets_dir = reaper.GetResourcePath() .. sep .. "Data"
+-- Ensure Data directory exists
+reaper.RecursiveCreateDirectory(presets_dir, 0)
+local presets_path = presets_dir .. sep .. "DM_RENAMER_Presets.dat"
 
 function Presets.save(name, state)
     -- Load existing presets

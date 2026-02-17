@@ -1,3 +1,4 @@
+-- @noindex
 -- DM RENAMER - Regions Module
 -- Handles all operations related to regions
 

@@ -1,20 +1,38 @@
--- DM RENAMER for Reaper
--- Main Interface Script
+-- @description DM Renamer - Batch Renaming Tool
+-- @author Anthony Deneyer
+-- @version 0.5.6-beta
+-- @provides
+--   [nomain] Modules/DM_RENAMER_Common.lua
+--   [nomain] Modules/DM_RENAMER_Items.lua
+--   [nomain] Modules/DM_RENAMER_Tracks.lua
+--   [nomain] Modules/DM_RENAMER_Regions.lua
+--   [nomain] Modules/DM_RENAMER_Markers.lua
+--   [nomain] Modules/DM_RENAMER_FolderItems.lua
+--   [nomain] Modules/DM_RENAMER_All.lua
+--   [nomain] Modules/DM_RENAMER_Settings.lua
+--   [nomain] Modules/DM_RENAMER_Settings_UI.lua
+--   [nomain] Modules/DM_RENAMER_Presets.lua
+--   [main] Modules/DM_RENAMER_TrackRegionMarkerSelection.lua
+--   [main] Modules/DM_RENAMER_ClearRegionMarkerSelection.lua
+-- @about
+--   Batch rename tool for REAPER. Rename multiple items, tracks, regions,
+--   and markers at once with live preview before applying changes.
+--   Supports find/replace, case transformations, Lua patterns, presets, and more.
 
 local DM_RENAMER_VERSION = "0.5.6-beta"
 
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
-local Common = dofile(script_path .. "DM_RENAMER_Common.lua")
-local Settings = dofile(script_path .. "DM_RENAMER_Settings.lua")
-local Items = dofile(script_path .. "DM_RENAMER_Items.lua")
-local Regions = dofile(script_path .. "DM_RENAMER_Regions.lua")
-local Markers = dofile(script_path .. "DM_RENAMER_Markers.lua")
-local Tracks = dofile(script_path .. "DM_RENAMER_Tracks.lua")
-local FolderItems = dofile(script_path .. "DM_RENAMER_FolderItems.lua")
-local All = dofile(script_path .. "DM_RENAMER_All.lua")
-local Presets = dofile(script_path .. "DM_RENAMER_Presets.lua")
-local SettingsUI = dofile(script_path .. "DM_RENAMER_Settings_UI.lua")
+local Common = dofile(script_path .. "Modules/DM_RENAMER_Common.lua")
+local Settings = dofile(script_path .. "Modules/DM_RENAMER_Settings.lua")
+local Items = dofile(script_path .. "Modules/DM_RENAMER_Items.lua")
+local Regions = dofile(script_path .. "Modules/DM_RENAMER_Regions.lua")
+local Markers = dofile(script_path .. "Modules/DM_RENAMER_Markers.lua")
+local Tracks = dofile(script_path .. "Modules/DM_RENAMER_Tracks.lua")
+local FolderItems = dofile(script_path .. "Modules/DM_RENAMER_FolderItems.lua")
+local All = dofile(script_path .. "Modules/DM_RENAMER_All.lua")
+local Presets = dofile(script_path .. "Modules/DM_RENAMER_Presets.lua")
+local SettingsUI = dofile(script_path .. "Modules/DM_RENAMER_Settings_UI.lua")
 
 -- Initialize ReaImGui
 local ctx = reaper.ImGui_CreateContext('DM RENAMER')
@@ -469,7 +487,7 @@ local function hasSelectionChanged()
     elseif state.currentTab == "Folder Items" then
         -- Special handling for folder items
         local currentSelection = {}
-        local FolderItems = dofile(script_path .. "DM_RENAMER_FolderItems.lua")
+        local FolderItems = dofile(script_path .. "Modules/DM_RENAMER_FolderItems.lua")
         
         for i = 0, reaper.CountSelectedMediaItems(0) - 1 do
             local item = reaper.GetSelectedMediaItem(0, i)

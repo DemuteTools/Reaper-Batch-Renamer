@@ -1,3 +1,4 @@
+-- @noindex
 -- DM RENAMER - Settings UI Module
 -- Handles the user interface for settings configuration
 

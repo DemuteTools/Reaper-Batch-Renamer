@@ -1,3 +1,4 @@
+-- @noindex
 -- DM RENAMER - Items Module
 -- Handles all operations related to media items
 

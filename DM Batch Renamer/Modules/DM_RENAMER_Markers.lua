@@ -1,3 +1,4 @@
+-- @noindex
 -- DM RENAMER - Markers Module
 -- Handles all operations related to markers
 

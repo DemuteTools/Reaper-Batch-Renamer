@@ -1,3 +1,4 @@
+-- @noindex
 -- DM RENAMER - Folder Items Module
 -- Handles detection and naming of empty items (folder items)
 

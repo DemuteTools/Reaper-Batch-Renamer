@@ -1,3 +1,4 @@
+-- @noindex
 -- DM RENAMER - Tracks Module
 -- Handles all operations related to tracks
 

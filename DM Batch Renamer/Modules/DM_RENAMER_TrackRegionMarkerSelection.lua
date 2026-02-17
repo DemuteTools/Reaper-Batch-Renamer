@@ -1,6 +1,7 @@
+-- @noindex
 -- DM RENAMER - Track Region/Marker Selection
--- This script tracks region/marker selection and stores in ExtState
--- Bind this to a toolbar button or mouse modifier for region/marker clicking
+-- Tracks region/marker clicks and stores selection in ExtState.
+-- Bind this to a toolbar button or mouse modifier for region/marker clicking.
 
 -- Get mouse position
 local x, y = reaper.GetMousePosition()

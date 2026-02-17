@@ -1,5 +1,6 @@
+-- @noindex
 -- DM RENAMER - Clear Region/Marker Selection
--- This script clears the region/marker selection stored in ExtState
+-- Clears the region/marker selection stored in ExtState.
 
 -- Clear both region and marker selections
 reaper.SetExtState("DM_RENAMER", "SelectedRegions", "", false)

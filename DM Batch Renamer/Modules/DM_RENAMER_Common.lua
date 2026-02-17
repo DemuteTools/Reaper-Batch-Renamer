@@ -1,3 +1,4 @@
+-- @noindex
 -- DM RENAMER - Common Functions Module
 -- Shared utility functions for all renaming operations
 

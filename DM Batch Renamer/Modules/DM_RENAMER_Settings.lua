@@ -1,3 +1,4 @@
+-- @noindex
 -- DM RENAMER - Settings Module
 -- Manages user preferences and persistent settings
 
