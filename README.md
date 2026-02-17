@@ -3,7 +3,7 @@
 > Batch renaming tool for REAPER.
 > Rename multiple items, tracks, regions, and markers at once with live preview before applying changes.
 
-**Version:** 0.5.6-beta
+**Version:** 0.6.0-beta
 **Author:** Anthony Deneyer
 
 ---
@@ -101,7 +101,7 @@ Six tabs control which type of REAPER element you rename:
 
 | Tab | What it renames |
 |-----|----------------|
-| **Folder Items** | Empty items (no audio/MIDI content), commonly used with NVK workflows |
+| **Folder Items** | Empty items (no audio/MIDI content), for NVK/RenderBlock workflows. Hidden by default — see [Folder Items](#folder-items) |
 | **All** | Items, tracks, regions, and markers combined in a single view |
 | **Media Items** | Audio and MIDI items |
 | **Regions** | Timeline regions |
@@ -128,9 +128,24 @@ A sortable table showing:
 
 ### Folder Items
 
-Designed for **empty items** (items without audio or MIDI content). These are commonly used in game audio workflows (e.g., NVK-style) to define naming from region and track hierarchies.
+Designed for **empty items** (items without audio or MIDI content). These are commonly used in game audio workflows with NVK or RenderBlock setups, where empty items serve as naming containers.
 
-This tab has its own dedicated controls at the top of the left panel:
+#### First-Time Onboarding
+
+The first time you open the Folder Items tab, an onboarding screen appears with two choices:
+
+- **"I'm a Folder Item user"** — Confirms you use this workflow. The tab stays visible and shows the full controls.
+- **"Hide this tab"** — Hides the Folder Items tab from the tab bar. The script switches to the All tab.
+
+If you don't use NVK-style folder items, you can safely hide this tab.
+
+#### Re-enabling the Tab
+
+To show the Folder Items tab again after hiding it, go to **Settings** (`Ctrl+,` or the Settings button) and check **"Show Folder Items tab"** under the Folder Items Tab section.
+
+#### Tab Controls
+
+Once confirmed, this tab has its own dedicated controls at the top of the left panel:
 
 - **Pattern** — Choose a naming pattern (Simple, Hierarchical, Custom).
 - **Separator** — Choose the character between name parts.
@@ -377,26 +392,33 @@ Enter space-separated tags in the **Settings** window under **Exclude Tags**. An
 
 ## Selection Behavior
 
-The tool automatically detects your current selection in REAPER:
+Each tab displays all elements of its own type:
 
-| Tab | What is detected |
-|-----|-----------------|
-| **Media Items** / **Folder Items** | Selected items, then time selection, then all items |
-| **Tracks** | Selected tracks, or all tracks if none selected |
-| **Regions** / **Markers** | Time selection, or companion script selection, or all |
-| **All** | Any combination of item, track, or time selection |
+- **Media Items** shows all media items in the project.
+- **Tracks** shows all tracks.
+- **Regions** shows all regions.
+- **Markers** shows all markers.
+- **Folder Items** shows all empty items.
+- **All** shows everything combined.
 
-**Priority order:**
+**Time selection** acts as a filter: when a time selection is active, only the elements that overlap with it are shown. Remove the time selection to see everything again.
 
-1. Explicit selection (selected items/tracks) takes precedence.
-2. Time selection acts as a filter.
-3. If nothing is selected, all elements are shown.
+For **Media Items** and **Folder Items**, selecting specific items in REAPER also acts as a filter — only those selected items appear in the list.
+
+For **Tracks**, selecting specific tracks in REAPER filters the list to those tracks only.
+
+**Note:** Individual selection does not work natively for **Regions** and **Markers** — REAPER does not expose region/marker selection to scripts. Use a time selection to filter them, or use the [companion selection script](#companion-scripts) as a workaround.
 
 ---
 
 ## Appearance Settings
 
 Open via **Settings > Appearance Settings** or `Ctrl+,` or the **Settings** button.
+
+### General
+
+- **Exclude Tags** — Space-separated tags to exclude from renaming (see [Exclude Tags](#exclude-tags)).
+- **Show Folder Items tab** — Toggle visibility of the Folder Items tab. Useful if you don't use NVK/RenderBlock workflows.
 
 ### Colors
 
@@ -491,6 +513,51 @@ These scripts require the **SWS Extension** for full functionality.
 6. Click **Auto-Name**.
 
 **Result:** `SFX_Footsteps_Dirt`, `SFX_Footsteps_Grass`
+
+### Custom Patterns for Complex Game Audio Hierarchies
+
+Imagine a project structured like this:
+
+```
+Regions (nested):
+  ├── Level01              ← $region1 (parent, largest)
+  │   ├── Forest           ← $region2
+  │   │   ├── Ambiance     ← $region3
+  │   │   └── Combat       ← $region3
+  │   └── Cave             ← $region2
+
+Tracks (nested):
+  ├── SFX                  ← $track1 (top-level parent)
+  │   ├── Footsteps        ← $track2
+  │   │   ├── Dirt         ← $track3
+  │   │   └── Stone        ← $track3
+  │   └── Impacts          ← $track2
+  │       └── Metal        ← $track3
+```
+
+Empty folder items sit at the intersection of a region and a track. With the **Custom pattern**, you control exactly which levels appear and in what order.
+
+**Goal:** Name assets as `Level01_Forest_Footsteps_Dirt` (skip the top-level SFX category, keep the sub-region).
+
+1. Open the **Folder Items** tab.
+2. Set **Pattern** to **Custom pattern**.
+3. Enter: `$region1_$region2_$track2_$track3`
+4. Set **Separator** to `_`.
+5. Set **Increment** to **Number** (handles duplicates).
+6. Set **Exclude Tags** to `TEMP BUS` (skip utility tracks).
+7. Click **Auto-Name**.
+
+**Results:**
+
+| Region context | Track context | Generated name |
+|---------------|--------------|----------------|
+| Level01 > Forest > Ambiance | SFX > Footsteps > Dirt | `Level01_Forest_Footsteps_Dirt` |
+| Level01 > Forest > Combat | SFX > Impacts > Metal | `Level01_Forest_Impacts_Metal` |
+| Level01 > Cave | SFX > Footsteps > Stone | `Level01_Cave_Footsteps_Stone` |
+
+By skipping `$track1` (SFX), you avoid redundant prefixes. By using `$region2` instead of `$region3`, you pick the right nesting depth. The custom pattern gives you full control over the naming hierarchy without any manual editing.
+
+Save this as a preset (e.g., `Game Export - Level Based`) to reuse it across sessions.
 
 ### Save and Reuse a Configuration
 
