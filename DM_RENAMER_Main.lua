@@ -185,6 +185,32 @@ if Settings.current.folderItems then
     state.spaceReplacement = Settings.current.spaceReplacement or state.spaceReplacement
 end
 
+-- Restore last used preset on startup
+if Settings.current.lastPreset then
+    local preset = Presets.load(Settings.current.lastPreset)
+    if preset then
+        for k, v in pairs(preset) do
+            state[k] = v
+        end
+        state.selectedPreset = Settings.current.lastPreset
+        state.needsPreview = true
+        -- Re-apply folder items settings from Settings (take precedence over preset
+        -- so that Settings UI changes are not silently overwritten by preset values)
+        if Settings.current.folderItems then
+            state.folderItemPattern = Settings.current.folderItems.pattern or state.folderItemPattern
+            state.folderItemSeparator = Settings.current.folderItems.separator or state.folderItemSeparator
+            state.folderItemCustomPattern = Settings.current.folderItems.customPattern or state.folderItemCustomPattern
+            state.folderItemIncrementMode = Settings.current.folderItems.incrementMode or state.folderItemIncrementMode
+            state.excludeTags = Settings.current.excludeTags or Settings.current.folderItems.excludeTag or state.excludeTags
+            state.spaceReplacement = Settings.current.spaceReplacement or state.spaceReplacement
+        end
+    else
+        -- Preset no longer exists, clear the reference
+        Settings.current.lastPreset = nil
+        Settings.save()
+    end
+end
+
 -- Function to save folder items settings
 local function saveFolderItemsSettings()
     if not Settings.current.folderItems then
@@ -1053,10 +1079,25 @@ local function loop()
         -- TODO: Implement manual UI element scaling or wait for API support
         
         -- Check for keyboard shortcuts
-        if reaper.ImGui_IsKeyDown(ctx, reaper.ImGui_Key_LeftCtrl()) or 
+        if reaper.ImGui_IsKeyDown(ctx, reaper.ImGui_Key_LeftCtrl()) or
            reaper.ImGui_IsKeyDown(ctx, reaper.ImGui_Key_RightCtrl()) then
             if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Comma()) then
                 state.showSettingsWindow = true
+            end
+        end
+
+        -- ESC key: close window only when no input field is active
+        -- (ImGui natively handles ESC to cancel active InputText widgets)
+        if reaper.ImGui_IsKeyPressed(ctx, reaper.ImGui_Key_Escape()) then
+            if not reaper.ImGui_IsAnyItemActive(ctx) then
+                -- Also clear inline editing state if somehow still set
+                if state.editingIndex then
+                    state.editingIndex = nil
+                    state.editingText = ""
+                    state.editingColumn = nil
+                else
+                    open = false  -- Close the window
+                end
             end
         end
         
@@ -1139,9 +1180,15 @@ local function loop()
                                 end
                                 state.selectedPreset = name
                                 state.needsPreview = true
+                                -- Save last used preset
+                                Settings.current.lastPreset = name
+                                Settings.save()
                             end
                         else
                             state.selectedPreset = nil
+                            -- Clear last used preset
+                            Settings.current.lastPreset = nil
+                            Settings.save()
                         end
                     end
                 end
@@ -2281,7 +2328,7 @@ local function loop()
     if open then
         reaper.defer(loop)
     else
-        -- Contexte nettoyé automatiquement par ReaImGui
+        -- Context automatically cleaned up by ReaImGui
     end
 end
 

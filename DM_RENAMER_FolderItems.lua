@@ -79,8 +79,8 @@ function FolderItems.getRegionsAtPosition(position, length, excludeTag)
             -- Add 1ms tolerance for position check to handle floating point precision issues
             -- when folder items are positioned exactly at region start
             if position >= (pos - 0.001) and position < rgnend then
-                -- Check if region should be excluded
-                if not isExcluded(name, excludeTag) then
+                -- Check if region should be excluded (skip empty names)
+                if name ~= "" and not isExcluded(name, excludeTag) then
                     table.insert(allRegions, {
                         name = name,
                         pos = pos,
@@ -157,10 +157,10 @@ function FolderItems.generateName(itemData, pattern, options)
     if pattern == "simple" then
         -- Simple pattern: first region_first track
         local parts = {}
-        if itemData.regions and #itemData.regions > 0 then
+        if itemData.regions and #itemData.regions > 0 and itemData.regions[1] ~= "" then
             table.insert(parts, itemData.regions[1])  -- First (parent) region
         end
-        if itemData.trackName then
+        if itemData.trackName and itemData.trackName ~= "" then
             table.insert(parts, itemData.trackName)
         end
         name = table.concat(parts, separator)
@@ -169,17 +169,21 @@ function FolderItems.generateName(itemData, pattern, options)
         -- Hierarchical pattern: all levels
         local parts = {}
 
-        -- Add all regions
+        -- Add all regions (skip empty names)
         if itemData.regions then
             for _, region in ipairs(itemData.regions) do
-                table.insert(parts, region)
+                if region ~= "" then
+                    table.insert(parts, region)
+                end
             end
         end
 
-        -- Add track hierarchy
+        -- Add track hierarchy (skip empty names)
         if itemData.tracks then
             for _, trackName in ipairs(itemData.tracks) do
-                table.insert(parts, trackName)
+                if trackName ~= "" then
+                    table.insert(parts, trackName)
+                end
             end
         end
 
@@ -415,21 +419,21 @@ function FolderItems.updatePreview(itemList, pattern, options)
     -- Store options for use in other functions
     currentOptions = options or {}
     
-    -- First pass: generate base names with all transformations
-    local nameCount = {}
+    -- Generate base names with all transformations
     for i, item in ipairs(itemList) do
         local generatedName = FolderItems.generateName(item, pattern, options)
-        
+
         -- Apply additional transformations (for full pattern system)
-        -- 1. Operations
+        -- 1. Operations (pcall to gracefully handle per-item errors)
         if options.operation and options.operation ~= "none" then
-            generatedName = Common.applyOperation(generatedName, options.operation, {
+            local ok, result = pcall(Common.applyOperation, generatedName, options.operation, {
                 position = item.position,
                 index = i,
                 type = "folderitem"
             })
+            if ok and result then generatedName = result end
         end
-        
+
         -- 2. Find/Replace with Lua patterns
         if options.findText and options.findText ~= "" then
             generatedName = Common.replacePattern(
@@ -441,7 +445,7 @@ function FolderItems.updatePreview(itemList, pattern, options)
                 options.useLuaPatterns
             )
         end
-        
+
         -- 2.5. Space replacement (independent of Find/Replace)
         if options.spaceReplacement and options.spaceReplacement ~= "" then
             if options.spaceReplacement == "remove" then
@@ -452,7 +456,7 @@ function FolderItems.updatePreview(itemList, pattern, options)
                 generatedName = generatedName:gsub("%s+", "-")
             end
         end
-        
+
         -- 3. Prefix/Suffix
         if options.prefix and options.prefix ~= "" then
             generatedName = options.prefix .. generatedName
@@ -460,50 +464,26 @@ function FolderItems.updatePreview(itemList, pattern, options)
         if options.suffix and options.suffix ~= "" then
             generatedName = generatedName .. options.suffix
         end
-        
+
         -- 4. Case transformation
         if options.transformCase and options.transformCase ~= "none" then
             generatedName = Common.applyCase(generatedName, options.transformCase)
         end
-        
-        item.basePreview = generatedName
 
-        -- Count occurrences only if increment mode is not "off"
-        local incrementMode = options.incrementMode or "number"  -- Default to "number"
-        if incrementMode ~= "off" then
-            nameCount[generatedName] = (nameCount[generatedName] or 0) + 1
-        end
-    end
+        item.preview = generatedName
 
-    -- Second pass: add suffix to duplicates (only if increment mode is not "off")
-    local nameIndex = {}
-    local incrementMode = options.incrementMode or "number"  -- Default to "number"
-    for _, item in ipairs(itemList) do
-        local baseName = item.basePreview
-
-        if incrementMode ~= "off" and nameCount[baseName] and nameCount[baseName] > 1 then
-            -- This name has duplicates, add suffix
-            nameIndex[baseName] = (nameIndex[baseName] or 0) + 1
-            local separator = options.separator or "_"
-            local suffix
-            if incrementMode == "letter" then
-                suffix = Common.numberToLetters(nameIndex[baseName])
-            else  -- "number" mode (default)
-                suffix = string.format("%02d", nameIndex[baseName])
-            end
-            item.preview = baseName .. separator .. suffix
-        else
-            -- Unique name or increment disabled
-            item.preview = baseName
-        end
-        
         -- Ensure preview is never empty
         if item.preview == "" or item.preview == nil then
             item.preview = "(empty)"
         end
-        
+
         -- Changed if different from either notes OR name
         item.changed = (item.preview ~= item.notes) or (item.preview ~= item.name)
+    end
+
+    -- Apply increment mode for duplicates (unified via Common)
+    if options.incrementMode and options.incrementMode ~= "off" then
+        Common.handleDuplicateNames(itemList, options.incrementMode, options.separator)
     end
 end
 

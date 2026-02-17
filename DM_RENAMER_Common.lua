@@ -468,13 +468,16 @@ end
 
 -- Handle duplicate names with auto-increment
 -- incrementMode: "off", "number", or "letter"
-function Common.handleDuplicateNames(list, incrementMode)
+-- separator: optional separator before suffix (default "_")
+function Common.handleDuplicateNames(list, incrementMode, separator)
     if not incrementMode or incrementMode == "off" then return end
+    separator = separator or "_"
 
-    -- Group items by preview name
+    -- Group items by preview name (include ALL items, not just changed ones,
+    -- so increment-only usage works without requiring other transformations)
     local nameGroups = {}
     for _, item in ipairs(list) do
-        if item.preview and item.preview ~= "" and item.changed then
+        if item.preview and item.preview ~= "" then
             if not nameGroups[item.preview] then
                 nameGroups[item.preview] = {}
             end
@@ -500,15 +503,16 @@ function Common.handleDuplicateNames(list, incrementMode)
                 end
             end)
 
-            -- Add suffix to duplicates (keep first one unchanged)
-            for i = 2, #items do
+            -- Add suffix to ALL duplicates (including first) with zero-padded format
+            for i = 1, #items do
                 local suffix
                 if incrementMode == "letter" then
                     suffix = Common.numberToLetters(i)
                 else  -- "number" mode (default)
-                    suffix = tostring(i)
+                    suffix = string.format("%02d", i)
                 end
-                items[i].preview = name .. "_" .. suffix
+                items[i].preview = name .. separator .. suffix
+                items[i].changed = true
             end
         end
     end

@@ -89,7 +89,7 @@ function Settings.getDefaultSettings()
             separator = "_",
             customPattern = "$region1_$track1",
             incrementMode = "number",  -- "off", "number", or "letter"
-            excludeTag = "//"
+            excludeTag = ""
         },
         
         -- UI Appearance settings

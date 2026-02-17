@@ -561,11 +561,12 @@ function Items.updatePreview(itemList, findText, replaceText, options)
         else
             -- Priority 2: Apply operation if specified
             if options.operation and options.operation ~= "none" then
-                newName = Common.applyOperation(newName, options.operation, {
+                local ok, result = pcall(Common.applyOperation, newName, options.operation, {
                     position = item.position,
                     index = i,
                     type = "item"
                 })
+                if ok and result then newName = result end
             else
                 -- Priority 3: Find/Replace (only if no operation)
                 if findText and findText ~= "" then
@@ -628,6 +629,11 @@ function Items.updatePreview(itemList, findText, replaceText, options)
         
         item.preview = newName
         item.changed = (newName ~= item.name)
+    end
+
+    -- Apply increment mode for duplicates
+    if options.incrementMode and options.incrementMode ~= "off" then
+        Common.handleDuplicateNames(itemList, options.incrementMode)
     end
 end
 

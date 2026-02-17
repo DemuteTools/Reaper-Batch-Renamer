@@ -621,11 +621,12 @@ function Tracks.updatePreview(trackList, findText, replaceText, options)
         else
             -- Priority 2: Apply operation if specified
             if options.operation and options.operation ~= "none" then
-                newName = Common.applyOperation(newName, options.operation, {
+                local ok, result = pcall(Common.applyOperation, newName, options.operation, {
                     trackNumber = track.trackNumber,
                     index = i,
                     type = "track"
                 })
+                if ok and result then newName = result end
             else
                 -- Priority 3: Find/Replace (only if no operation)
                 if findText and findText ~= "" then
@@ -688,6 +689,11 @@ function Tracks.updatePreview(trackList, findText, replaceText, options)
         
         track.preview = newName
         track.changed = (newName ~= track.name)
+    end
+
+    -- Apply increment mode for duplicates
+    if options.incrementMode and options.incrementMode ~= "off" then
+        Common.handleDuplicateNames(trackList, options.incrementMode)
     end
 end
 

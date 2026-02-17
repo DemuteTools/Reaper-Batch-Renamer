@@ -133,7 +133,7 @@ end
 
 function Presets.deserialize(str)
     if str and str ~= "" then
-        local func = load(str)
+        local func = load(str, "presets", "t", {})
         if func then
             local success, result = pcall(func)
             if success then
