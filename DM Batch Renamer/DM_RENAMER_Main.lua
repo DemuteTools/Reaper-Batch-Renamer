@@ -1526,50 +1526,6 @@ local function loop()
                     reaper.ImGui_Text(ctx, "           $position, $index")
                 end
                 
-                -- Auto-increment option moved to general section
-                
-                -- reaper.ImGui_Separator(ctx)
-                
-                -- Auto-name button
-                if reaper.ImGui_Button(ctx, "Auto-Name") then
-                    -- First ensure preview is updated
-                    if not state.needsPreview then
-                        updatePreview()  -- Force preview update
-                    end
-                    
-                    -- Count selected items
-                    local hasChecked = false
-                    local checkedCount = 0
-                    for _, item in ipairs(state.currentList) do
-                        if item.checked then
-                            hasChecked = true
-                            checkedCount = checkedCount + 1
-                        end
-                    end
-                    
-                    if hasChecked then
-                        -- Apply changes silently
-                        applyChanges()
-                    else
-                        -- If nothing checked, check all changed items and apply
-                        local hasChanges = false
-                        for _, item in ipairs(state.currentList) do
-                            if item.changed then
-                                item.checked = true
-                                hasChanges = true
-                            end
-                        end
-                        if hasChanges then
-                            applyChanges()
-                        end
-                    end
-                end
-                
-                reaper.ImGui_SameLine(ctx)
-                if reaper.ImGui_Button(ctx, "Refresh List") then
-                    state.needsRefresh = true
-                end
-
                 reaper.ImGui_Separator(ctx)
             end
 
