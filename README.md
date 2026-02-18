@@ -3,7 +3,7 @@
 > Batch renaming tool for REAPER.
 > Rename multiple items, tracks, regions, and markers at once with live preview before applying changes.
 
-**Version:** 0.6.4-beta
+**Version:** 0.6.5-beta
 **Author:** Anthony Deneyer
 
 ---
