@@ -1,6 +1,6 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.6.6-beta
+-- @version 0.6.7-beta
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -19,7 +19,7 @@
 --   and markers at once with live preview before applying changes.
 --   Supports find/replace, case transformations, Lua patterns, presets, and more.
 
-local DM_RENAMER_VERSION = "0.6.6-beta"
+local DM_RENAMER_VERSION = "0.6.7-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
@@ -1139,6 +1139,13 @@ local function loop()
         -- Handle Settings window if open
         if state.showSettingsWindow then
             state.showSettingsWindow = SettingsUI.showSettingsWindow(state.showSettingsWindow)
+            -- Sync exclude tags from Settings to state (live update)
+            local settingsExclude = Settings.current.excludeTags or ""
+            if settingsExclude ~= state.excludeTags then
+                state.excludeTags = settingsExclude
+                state.needsRefresh = true
+                state.needsPreview = true
+            end
         end
         
         -- Menu bar
