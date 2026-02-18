@@ -1,6 +1,8 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
 -- @version 0.6.7-beta
+-- @changelog
+--   Initial ReaPack release
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -14,10 +16,28 @@
 --   [nomain] Modules/DM_RENAMER_Presets.lua
 --   [main] Modules/DM_RENAMER_TrackRegionMarkerSelection.lua
 --   [main] Modules/DM_RENAMER_ClearRegionMarkerSelection.lua
+-- @link GitHub https://github.com/DemuteStudio/Reaper-Batch-Renamer
 -- @about
---   Batch rename tool for REAPER. Rename multiple items, tracks, regions,
---   and markers at once with live preview before applying changes.
---   Supports find/replace, case transformations, Lua patterns, presets, and more.
+--   # DM Batch Renamer
+--
+--   Batch renaming tool for REAPER with live preview.
+--
+--   ## Features
+--   - Rename **items, tracks, regions, and markers** in batch
+--   - Live preview table before applying changes
+--   - Find/Replace with **Lua pattern** support
+--   - Prefix, Suffix, Case transformations (9 modes)
+--   - Replace spaces (underscore, dash, remove)
+--   - Increment mode (number or letter sequences)
+--   - **Folder Items** tab with custom naming patterns ($region, $track, $position, $index)
+--   - Preset system to save/load renaming configurations
+--   - Inline editing directly in the preview table
+--   - Customizable appearance (colors, scale, theme presets)
+--   - Companion scripts for region/marker click-selection
+--
+--   ## Requirements
+--   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
+--   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
 local DM_RENAMER_VERSION = "0.6.7-beta"
 
