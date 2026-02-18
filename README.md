@@ -43,7 +43,6 @@
   - [Naming Patterns](#naming-patterns)
   - [Custom Pattern Variables](#custom-pattern-variables)
   - [Separator Options](#separator-options)
-  - [Auto-Name Button](#auto-name-button)
 - [Exclude Tags](#exclude-tags)
 - [Selection Behavior](#selection-behavior)
 - [Appearance Settings](#appearance-settings)
@@ -156,9 +155,6 @@ Once confirmed, this tab has its own dedicated controls at the top of the left p
 - **Pattern** — Choose a naming pattern (Simple, Hierarchical, Custom).
 - **Separator** — Choose the character between name parts.
 - **Custom pattern field** — Visible when "Custom pattern" is selected.
-- **Auto-Name** — Generate names and apply in one click.
-- **Refresh List** — Manually reload the list of folder items.
-
 See [Folder Items — Advanced Usage](#folder-items--advanced-usage) for full details.
 
 ### All
@@ -374,13 +370,6 @@ Choose the character that joins name parts:
 - ` ` (space)
 - Any custom text typed in the separator field
 
-### Auto-Name Button
-
-Click **Auto-Name** to generate and apply names in one step:
-
-1. If items are checked, only those are renamed.
-2. If no items are checked, all items with changes are auto-checked and renamed.
-
 ---
 
 ## Exclude Tags
@@ -536,7 +525,7 @@ These scripts work best with the **SWS Extension** installed (Shift multi-select
 3. Open the **Folder Items** tab.
 4. Select **Hierarchical** pattern.
 5. Set the separator to `_`.
-6. Click **Auto-Name**.
+6. Click **Apply Changes**.
 
 **Result:** `SFX_Footsteps_Dirt`, `SFX_Footsteps_Grass`
 
@@ -571,7 +560,7 @@ Empty folder items sit at the intersection of a region and a track. With the **C
 4. Set **Separator** to `_`.
 5. Set **Increment** to **Number** (handles duplicates).
 6. Set **Exclude Tags** to `TEMP BUS` (skip utility tracks).
-7. Click **Auto-Name**.
+7. Click **Apply Changes**.
 
 **Results:**
 
