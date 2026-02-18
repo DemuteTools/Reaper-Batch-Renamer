@@ -21,6 +21,25 @@
 
 local DM_RENAMER_VERSION = "0.6.5-beta"
 
+-- Toggle action support: if already running, signal close and exit
+local _, _, sectionID, cmdID = reaper.get_action_context()
+local EXT_SECTION = "DM_RENAMER"
+
+if reaper.HasExtState(EXT_SECTION, "running") then
+    reaper.SetExtState(EXT_SECTION, "close", "1", false)
+    return reaper.defer(function() end)
+end
+
+reaper.SetExtState(EXT_SECTION, "running", "1", false)
+reaper.SetToggleCommandState(sectionID, cmdID, 1)
+reaper.RefreshToolbar2(sectionID, cmdID)
+reaper.atexit(function()
+    reaper.DeleteExtState(EXT_SECTION, "running", false)
+    reaper.DeleteExtState(EXT_SECTION, "close", false)
+    reaper.SetToggleCommandState(sectionID, cmdID, 0)
+    reaper.RefreshToolbar2(sectionID, cmdID)
+end)
+
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
 local Common = dofile(script_path .. "Modules/DM_RENAMER_Common.lua")
@@ -33,25 +52,6 @@ local FolderItems = dofile(script_path .. "Modules/DM_RENAMER_FolderItems.lua")
 local All = dofile(script_path .. "Modules/DM_RENAMER_All.lua")
 local Presets = dofile(script_path .. "Modules/DM_RENAMER_Presets.lua")
 local SettingsUI = dofile(script_path .. "Modules/DM_RENAMER_Settings_UI.lua")
-
--- Toggle action support: if already running, signal close and exit
-local _, _, sectionID, cmdID = reaper.get_action_context()
-local EXT_SECTION = "DM_RENAMER"
-
-if reaper.GetExtState(EXT_SECTION, "running") == "1" then
-    reaper.SetExtState(EXT_SECTION, "close", "1", false)
-    return
-end
-
-reaper.SetExtState(EXT_SECTION, "running", "1", false)
-reaper.SetToggleCommandState(sectionID, cmdID, 1)
-reaper.RefreshToolbar2(sectionID, cmdID)
-reaper.atexit(function()
-    reaper.DeleteExtState(EXT_SECTION, "running", false)
-    reaper.DeleteExtState(EXT_SECTION, "close", false)
-    reaper.SetToggleCommandState(sectionID, cmdID, 0)
-    reaper.RefreshToolbar2(sectionID, cmdID)
-end)
 
 -- Initialize ReaImGui
 local ctx = reaper.ImGui_CreateContext('DM RENAMER')
