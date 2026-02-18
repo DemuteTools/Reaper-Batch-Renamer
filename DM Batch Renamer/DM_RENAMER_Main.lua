@@ -1,6 +1,6 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.6.5-beta
+-- @version 0.6.6-beta
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -19,7 +19,7 @@
 --   and markers at once with live preview before applying changes.
 --   Supports find/replace, case transformations, Lua patterns, presets, and more.
 
-local DM_RENAMER_VERSION = "0.6.5-beta"
+local DM_RENAMER_VERSION = "0.6.6-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
@@ -1186,7 +1186,7 @@ local function loop()
         -- PRESETS SECTION (Above tabs, available for all tabs)
         reaper.ImGui_Separator(ctx)
 
-        local leftColumnWidth = 400
+        local leftColumnWidth = 340
 
         -- Create a child window for presets to contain them properly
         if reaper.ImGui_BeginChild(ctx, "PresetSection", -1, 50, reaper.ImGui_WindowFlags_None()) then
