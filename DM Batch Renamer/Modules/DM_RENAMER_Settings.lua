@@ -93,9 +93,6 @@ function Settings.getDefaultSettings()
             excludeTag = ""
         },
 
-        -- Folder Item user flag: "undecided" = never seen onboarding, true = confirmed user, false = tab hidden
-        folderItemUser = "undecided",
-        
         -- UI Appearance settings
         appearance = {
             -- Colors (in 0xRRGGBBAA format)
@@ -359,6 +356,21 @@ end
 -- Get replace option
 function Settings.getReplaceOption(option)
     return Settings.current.replace[option]
+end
+
+-- Get folder item user flag (stored in its own ExtState key for reliability)
+-- Returns: true = confirmed user, false = tab hidden, "undecided" = never answered
+function Settings.getFolderItemUser()
+    local val = reaper.GetExtState(EXTSTATE_SECTION, "folderItemUser")
+    if val == "true" then return true
+    elseif val == "false" then return false
+    else return "undecided"
+    end
+end
+
+-- Set folder item user flag
+function Settings.setFolderItemUser(value)
+    reaper.SetExtState(EXTSTATE_SECTION, "folderItemUser", tostring(value), true)
 end
 
 -- Set current tab

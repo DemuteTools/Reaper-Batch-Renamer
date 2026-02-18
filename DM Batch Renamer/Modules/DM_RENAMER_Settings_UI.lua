@@ -114,17 +114,11 @@ local function showGeneralSettings()
     reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Folder Items Tab")
     reaper.ImGui_Separator(ctx)
 
-    local folderItemUser = Settings.current.folderItemUser
+    local folderItemUser = Settings.getFolderItemUser()
     local showTab = (folderItemUser ~= false)
     local rv, newShowTab = reaper.ImGui_Checkbox(ctx, "Show Folder Items tab", showTab)
     if rv then
-        if newShowTab then
-            -- Re-enable: set to nil so onboarding shows again, or true if they saw it before
-            Settings.current.folderItemUser = true
-        else
-            Settings.current.folderItemUser = false
-        end
-        Settings.save()
+        Settings.setFolderItemUser(newShowTab)
     end
 
     reaper.ImGui_TextColored(ctx, 0xAAAA00FF,

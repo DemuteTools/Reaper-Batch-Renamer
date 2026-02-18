@@ -1,6 +1,6 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.6.2-beta
+-- @version 0.6.3-beta
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -19,7 +19,7 @@
 --   and markers at once with live preview before applying changes.
 --   Supports find/replace, case transformations, Lua patterns, presets, and more.
 
-local DM_RENAMER_VERSION = "0.6.2-beta"
+local DM_RENAMER_VERSION = "0.6.3-beta"
 
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
@@ -192,7 +192,7 @@ end
 Settings.load()
 
 -- If Folder Items tab is hidden, default to All tab
-if Settings.current.folderItemUser == false and state.currentTab == "Folder Items" then
+if Settings.getFolderItemUser() == false and state.currentTab == "Folder Items" then
     state.currentTab = "All"
 end
 
@@ -1304,7 +1304,7 @@ local function loop()
         -- Tabs (new order: Folder Items first, then All, then the rest)
         if reaper.ImGui_BeginTabBar(ctx, "MainTabs") then
             -- 1. Folder Items (first and default) - only show if not explicitly hidden
-            if Settings.current.folderItemUser ~= false then
+            if Settings.getFolderItemUser() ~= false then
                 if reaper.ImGui_BeginTabItem(ctx, "Folder Items") then
                     if state.currentTab ~= "Folder Items" then
                         state.currentTab = "Folder Items"
@@ -1394,7 +1394,8 @@ local function loop()
         local leftColumnWidth = 400
         
         -- Check if we're showing folder item onboarding (used to skip controls/preview)
-        local showFolderItemOnboarding = (state.currentTab == "Folder Items" and Settings.current.folderItemUser == "undecided")
+        local folderItemUser = Settings.getFolderItemUser()
+        local showFolderItemOnboarding = (state.currentTab == "Folder Items" and folderItemUser == "undecided")
 
         -- LEFT COLUMN (Options)
         -- Adjust height to account for preset section above
@@ -1407,7 +1408,7 @@ local function loop()
             -- FOLDER ITEMS SPECIFIC SECTION
             if state.currentTab == "Folder Items" then
                 -- Onboarding gate: show intro message if user hasn't confirmed yet
-                if Settings.current.folderItemUser == "undecided" then
+                if folderItemUser == "undecided" then
                     reaper.ImGui_Spacing(ctx)
                     reaper.ImGui_Spacing(ctx)
                     reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Welcome to the Folder Items tab!")
@@ -1419,8 +1420,7 @@ local function loop()
                     reaper.ImGui_Spacing(ctx)
 
                     if reaper.ImGui_Button(ctx, "I'm a Folder Item user", 250, 30) then
-                        Settings.current.folderItemUser = true
-                        Settings.save()
+                        Settings.setFolderItemUser(true)
                         state.needsRefresh = true
                         state.needsPreview = true
                     end
@@ -1428,8 +1428,7 @@ local function loop()
                     reaper.ImGui_Spacing(ctx)
 
                     if reaper.ImGui_Button(ctx, "Hide this tab", 250, 30) then
-                        Settings.current.folderItemUser = false
-                        Settings.save()
+                        Settings.setFolderItemUser(false)
                         -- Switch to another tab since this one will be hidden
                         state.currentTab = "All"
                         state.needsRefresh = true
@@ -1439,7 +1438,7 @@ local function loop()
             end -- end Folder Items onboarding check
 
             -- Normal Folder Items controls (only when user is confirmed)
-            if state.currentTab == "Folder Items" and Settings.current.folderItemUser == true then
+            if state.currentTab == "Folder Items" and folderItemUser == true then
                 -- Pattern dropdown
                 reaper.ImGui_Text(ctx, "Pattern:")
                 reaper.ImGui_SameLine(ctx)
