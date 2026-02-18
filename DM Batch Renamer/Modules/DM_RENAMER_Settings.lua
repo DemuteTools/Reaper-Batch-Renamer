@@ -93,8 +93,8 @@ function Settings.getDefaultSettings()
             excludeTag = ""
         },
 
-        -- Folder Item user flag: nil = never seen onboarding, true = confirmed user, false = tab hidden
-        folderItemUser = nil,
+        -- Folder Item user flag: "undecided" = never seen onboarding, true = confirmed user, false = tab hidden
+        folderItemUser = "undecided",
         
         -- UI Appearance settings
         appearance = {

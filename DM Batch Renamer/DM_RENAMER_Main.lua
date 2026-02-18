@@ -1,6 +1,6 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.6.1-beta
+-- @version 0.6.2-beta
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -19,7 +19,7 @@
 --   and markers at once with live preview before applying changes.
 --   Supports find/replace, case transformations, Lua patterns, presets, and more.
 
-local DM_RENAMER_VERSION = "0.6.1-beta"
+local DM_RENAMER_VERSION = "0.6.2-beta"
 
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
@@ -1394,7 +1394,7 @@ local function loop()
         local leftColumnWidth = 400
         
         -- Check if we're showing folder item onboarding (used to skip controls/preview)
-        local showFolderItemOnboarding = (state.currentTab == "Folder Items" and Settings.current.folderItemUser == nil)
+        local showFolderItemOnboarding = (state.currentTab == "Folder Items" and Settings.current.folderItemUser == "undecided")
 
         -- LEFT COLUMN (Options)
         -- Adjust height to account for preset section above
@@ -1407,7 +1407,7 @@ local function loop()
             -- FOLDER ITEMS SPECIFIC SECTION
             if state.currentTab == "Folder Items" then
                 -- Onboarding gate: show intro message if user hasn't confirmed yet
-                if Settings.current.folderItemUser == nil then
+                if Settings.current.folderItemUser == "undecided" then
                     reaper.ImGui_Spacing(ctx)
                     reaper.ImGui_Spacing(ctx)
                     reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Welcome to the Folder Items tab!")
