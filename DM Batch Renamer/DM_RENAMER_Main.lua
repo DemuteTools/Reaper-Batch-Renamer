@@ -21,21 +21,11 @@
 
 local DM_RENAMER_VERSION = "0.6.5-beta"
 
--- Toggle action support: if already running, signal close and exit
+-- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
-local EXT_SECTION = "DM_RENAMER"
-
-if reaper.HasExtState(EXT_SECTION, "running") then
-    reaper.SetExtState(EXT_SECTION, "close", "1", false)
-    return reaper.defer(function() end)
-end
-
-reaper.SetExtState(EXT_SECTION, "running", "1", false)
 reaper.SetToggleCommandState(sectionID, cmdID, 1)
 reaper.RefreshToolbar2(sectionID, cmdID)
 reaper.atexit(function()
-    reaper.DeleteExtState(EXT_SECTION, "running", false)
-    reaper.DeleteExtState(EXT_SECTION, "close", false)
     reaper.SetToggleCommandState(sectionID, cmdID, 0)
     reaper.RefreshToolbar2(sectionID, cmdID)
 end)
@@ -2436,12 +2426,6 @@ local function loop()
     reaper.ImGui_PopStyleColor(ctx, totalColors)
     reaper.ImGui_PopStyleVar(ctx, 5)    -- We pushed 5 style variables
     
-    -- Check for toggle-close signal from a second instance
-    if reaper.GetExtState(EXT_SECTION, "close") == "1" then
-        reaper.DeleteExtState(EXT_SECTION, "close", false)
-        open = false
-    end
-
     if open then
         reaper.defer(loop)
     end
