@@ -3,7 +3,7 @@
 > Batch renaming tool for REAPER.
 > Rename multiple items, tracks, regions, and markers at once with live preview before applying changes.
 
-**Version:** 0.6.0-beta
+**Version:** 0.6.4-beta
 **Author:** Anthony Deneyer
 
 ---
@@ -47,6 +47,10 @@
 - [Exclude Tags](#exclude-tags)
 - [Selection Behavior](#selection-behavior)
 - [Appearance Settings](#appearance-settings)
+  - [General Tab](#general-tab)
+  - [Appearance Tab](#appearance-tab)
+  - [Scale / Zoom Tab](#scale--zoom-tab)
+  - [Presets Tab](#presets-tab)
 - [Companion Scripts](#companion-scripts)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Common Workflows](#common-workflows)
@@ -72,7 +76,7 @@
 3. Type in the **Find** field, and optionally the **Replace** field.
 4. Watch the **Preview Table** update in real time.
 5. Check the items you want to rename (changed items are auto-checked).
-6. Click **Rename All** at the bottom of the window.
+6. Click **Apply Changes** at the bottom of the window.
 
 ---
 
@@ -129,6 +133,8 @@ A sortable table showing:
 ### Folder Items
 
 Designed for **empty items** (items without audio or MIDI content). These are commonly used in game audio workflows with NVK or RenderBlock setups, where empty items serve as naming containers.
+
+**Note:** Items with the name or notes `[JOIN]` (used by the NVK suite for folder detection) are automatically excluded from the Folder Items list.
 
 #### First-Time Onboarding
 
@@ -211,7 +217,7 @@ A dropdown with quick transformations. Select one from the list:
 |-----------|--------|---------|
 | None | No operation | — |
 | Add Date (YYYY-MM-DD) | Appends today's date | `Guitar` → `Guitar_2026-02-17` |
-| Add Timestamp (HH-MM-SS) | Appends the item's timeline position | `Vocal` → `Vocal_02-34-150` |
+| Add Timestamp (MM-SS-mmm) | Appends the item's timeline position (minutes-seconds-milliseconds) | `Vocal` → `Vocal_02-34-150` |
 | Remove [Brackets] and Content | Deletes `[...]` and everything inside | `Track [old]` → `Track ` |
 | Remove (Parentheses) and Content | Deletes `(...)` and everything inside | `Bass (DI)` → `Bass ` |
 
@@ -415,28 +421,45 @@ For **Tracks**, selecting specific tracks in REAPER filters the list to those tr
 
 Open via **Settings > Appearance Settings** or `Ctrl+,` or the **Settings** button.
 
-### General
+The Settings window has four tabs and action buttons at the bottom: **Save & Close**, **Apply**, **Cancel** (restores original values), and **Reset Defaults**.
+
+### General Tab
 
 - **Exclude Tags** — Space-separated tags to exclude from renaming (see [Exclude Tags](#exclude-tags)).
 - **Show Folder Items tab** — Toggle visibility of the Folder Items tab. Useful if you don't use NVK/RenderBlock workflows.
 
-### Colors
+### Appearance Tab
 
-- **Button Color** — Primary accent color for buttons, tabs, checkboxes, and sliders. Hover and highlight colors are computed automatically.
+#### Colors
+
+- **Button Color** — Primary accent color for buttons, tabs, checkboxes, and sliders.
+- **Button Hover Color** — Auto-computed from Button Color, but individually adjustable.
 - **Background Color** — Window background.
-- **Frame Color** — Input field backgrounds.
+- **Highlight Color** — Auto-computed from Button Color, but individually adjustable.
 - **Text Color** — All text in the interface.
+- **Header Color** — Column headers and section titles.
+- **Frame Color** — Input field backgrounds.
 
-### Style
+#### Style
 
-- **UI Rounding** — Corner radius for buttons and inputs.
-- **Frame Rounding** — Corner radius for the window frame.
+- **UI Elements Rounding** — Corner radius for buttons and inputs.
+- **Window Rounding** — Corner radius for the window frame.
 - **Item Spacing** — Vertical space between UI elements.
 - **Window Padding** — Margin inside the window edges.
 
-### Scale
+### Scale / Zoom Tab
 
+- **UI Scale** — Overall interface scale (50%–200%), with quick preset buttons: 50%, 75%, 100%, 125%, 150%.
 - **Font Size** — Base font size (requires restarting the script to take effect).
+
+### Presets Tab
+
+Four built-in appearance themes you can apply with one click:
+
+- **Dark Theme** — Dark background with teal accents.
+- **Light Theme** — Light background with neutral tones.
+- **High Contrast** — Black background with high-visibility elements.
+- **Blue Theme** — Navy background with blue accents.
 
 ---
 
@@ -451,7 +474,7 @@ Two additional scripts are included for region/marker selection in the arrange v
 
 **Setup:** In REAPER, go to **Actions > Show action list**, find these scripts, and assign them to a keyboard shortcut or mouse modifier.
 
-These scripts require the **SWS Extension** for full functionality.
+These scripts work best with the **SWS Extension** installed (Shift multi-select, precise region/marker detection). Without SWS, a fallback mode uses the cursor position for single-selection only.
 
 ---
 
@@ -463,6 +486,9 @@ These scripts require the **SWS Extension** for full functionality.
 | `Escape` | Cancel inline editing, or close the window if nothing is active |
 | `Enter` | Confirm inline editing |
 | `Double-click` | Edit a name directly in the preview table |
+| `Right-click` | Edit the selected row inline |
+| `F2` | Edit the selected row inline |
+| `Mouse wheel` | Navigate selection up/down in the preview table |
 
 ---
 
@@ -475,7 +501,7 @@ These scripts require the **SWS Extension** for full functionality.
 3. Leave **Replace** empty.
 4. Set **Case** to **Title Case**.
 5. Set **Replace Spaces** to **_**.
-6. Click **Rename All**.
+6. Click **Apply Changes**.
 
 **Before:** `Track 01 - raw GUITAR` → **After:** `Raw_Guitar`
 
@@ -499,7 +525,7 @@ These scripts require the **SWS Extension** for full functionality.
 2. Set **Case** to **UPPERCASE**.
 3. Set **Replace spaces** to **_**.
 4. Set **Prefix** to your project name (e.g., `MyProject_`).
-5. Click **Rename All**.
+5. Click **Apply Changes**.
 
 **Before:** `lead vocals` → **After:** `MyProject_LEAD_VOCALS`
 

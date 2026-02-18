@@ -1,6 +1,6 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.6.3-beta
+-- @version 0.6.4-beta
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -19,7 +19,7 @@
 --   and markers at once with live preview before applying changes.
 --   Supports find/replace, case transformations, Lua patterns, presets, and more.
 
-local DM_RENAMER_VERSION = "0.6.3-beta"
+local DM_RENAMER_VERSION = "0.6.4-beta"
 
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
@@ -33,6 +33,15 @@ local FolderItems = dofile(script_path .. "Modules/DM_RENAMER_FolderItems.lua")
 local All = dofile(script_path .. "Modules/DM_RENAMER_All.lua")
 local Presets = dofile(script_path .. "Modules/DM_RENAMER_Presets.lua")
 local SettingsUI = dofile(script_path .. "Modules/DM_RENAMER_Settings_UI.lua")
+
+-- Toggle action support (show on/off state in toolbar/action list)
+local _, _, sectionID, cmdID = reaper.get_action_context()
+reaper.SetToggleCommandState(sectionID, cmdID, 1)
+reaper.RefreshToolbar2(sectionID, cmdID)
+reaper.atexit(function()
+    reaper.SetToggleCommandState(sectionID, cmdID, 0)
+    reaper.RefreshToolbar2(sectionID, cmdID)
+end)
 
 -- Initialize ReaImGui
 local ctx = reaper.ImGui_CreateContext('DM RENAMER')
@@ -1176,17 +1185,19 @@ local function loop()
         
         -- PRESETS SECTION (Above tabs, available for all tabs)
         reaper.ImGui_Separator(ctx)
-        
+
+        local leftColumnWidth = 400
+
         -- Create a child window for presets to contain them properly
         if reaper.ImGui_BeginChild(ctx, "PresetSection", -1, 50, reaper.ImGui_WindowFlags_None()) then
             local labelWidth = 100
             local controlPosX = labelWidth + 10
-            
+
             -- Load preset dropdown
             reaper.ImGui_Text(ctx, "Load Preset:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, 200)
+            reaper.ImGui_SetNextItemWidth(ctx, leftColumnWidth - controlPosX - 15)
 
             local presetNames = Presets.list()
             table.insert(presetNames, 1, "-- None --")
@@ -1238,7 +1249,7 @@ local function loop()
             reaper.ImGui_Text(ctx, "Save as:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, 150)
+            reaper.ImGui_SetNextItemWidth(ctx, leftColumnWidth - controlPosX - 60)
             local nameChanged, newName = reaper.ImGui_InputText(ctx, "##PresetName", state.presetName)
             if nameChanged then
                 state.presetName = newName
@@ -1391,7 +1402,6 @@ local function loop()
         
         -- Create 2-column layout
         local windowWidth = reaper.ImGui_GetContentRegionAvail(ctx)
-        local leftColumnWidth = 400
         
         -- Check if we're showing folder item onboarding (used to skip controls/preview)
         local folderItemUser = Settings.getFolderItemUser()
@@ -1401,7 +1411,7 @@ local function loop()
         -- Adjust height to account for preset section above
         if reaper.ImGui_BeginChild(ctx, "LeftColumn", leftColumnWidth, -30, reaper.ImGui_WindowFlags_None()) then
             -- Define alignment constants
-            local labelWidth = 120
+            local labelWidth = 100
             local controlPosX = labelWidth + 10
 
             
@@ -1443,8 +1453,8 @@ local function loop()
                 reaper.ImGui_Text(ctx, "Pattern:")
                 reaper.ImGui_SameLine(ctx)
                 reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-                reaper.ImGui_SetNextItemWidth(ctx, 250)
-                
+                reaper.ImGui_SetNextItemWidth(ctx, -1)
+
                 local patterns = {
                     simple = "Simple (region_track)",
                     hierarchical = "Hierarchical (all levels)",
@@ -1502,7 +1512,7 @@ local function loop()
                     reaper.ImGui_Text(ctx, "Pattern:")
                     reaper.ImGui_SameLine(ctx)
                     reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-                    reaper.ImGui_SetNextItemWidth(ctx, 250)
+                    reaper.ImGui_SetNextItemWidth(ctx, -1)
                     local patternChanged, newPattern = reaper.ImGui_InputText(ctx, "##CustomPattern", state.folderItemCustomPattern)
                     if patternChanged then
                         state.folderItemCustomPattern = newPattern
@@ -1573,13 +1583,13 @@ local function loop()
             reaper.ImGui_Text(ctx, "Find:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, 220)
-            
+            reaper.ImGui_SetNextItemWidth(ctx, -1)
+
             -- Color input red if pattern is invalid
             if state.useLuaPatterns and not state.patternValid then
                 reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_FrameBg(), 0x4040FFFF)
             end
-            
+
             local changed, newFind = reaper.ImGui_InputText(ctx, "##Find", state.findText)
             
             if state.useLuaPatterns and not state.patternValid then
@@ -1609,7 +1619,7 @@ local function loop()
             reaper.ImGui_Text(ctx, "Replace:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, 250)
+            reaper.ImGui_SetNextItemWidth(ctx, -1)
             local changed2, newReplace = reaper.ImGui_InputText(ctx, "##Replace", state.replaceText)
             if changed2 then
                 state.replaceText = newReplace
@@ -1620,17 +1630,17 @@ local function loop()
             reaper.ImGui_Text(ctx, "Prefix:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, 120)
+            reaper.ImGui_SetNextItemWidth(ctx, -1)
             local changedPrefix, newPrefix = reaper.ImGui_InputText(ctx, "##Prefix", state.prefix)
             if changedPrefix then
                 state.prefix = newPrefix
                 state.needsPreview = true
             end
-            
-            reaper.ImGui_SameLine(ctx)
+
             reaper.ImGui_Text(ctx, "Suffix:")
             reaper.ImGui_SameLine(ctx)
-            reaper.ImGui_SetNextItemWidth(ctx, 120)
+            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            reaper.ImGui_SetNextItemWidth(ctx, -1)
             local changedSuffix, newSuffix = reaper.ImGui_InputText(ctx, "##Suffix", state.suffix)
             if changedSuffix then
                 state.suffix = newSuffix
@@ -1679,7 +1689,7 @@ local function loop()
             reaper.ImGui_Text(ctx, "Operation:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, 250)
+            reaper.ImGui_SetNextItemWidth(ctx, -1)
             
             -- Operation descriptions (simplified - duplicates removed)
             local operationLabels = {
@@ -1714,7 +1724,7 @@ local function loop()
             reaper.ImGui_Text(ctx, "Case:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, 250)
+            reaper.ImGui_SetNextItemWidth(ctx, -1)
             
             -- Build display text for dropdown with sorted order
             local caseOrder = {"none", "camel", "constant", "kebab", "lower", "pascal", "sentence", "snake", "title", "upper"}
