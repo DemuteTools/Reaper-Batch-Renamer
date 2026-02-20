@@ -1,8 +1,10 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.6.7-beta
+-- @version 0.6.8-beta
 -- @changelog
---   Initial ReaPack release
+--   Fix settings not persisting across REAPER restarts (single-line serialization)
+--   Fix region resize not triggering refresh
+--   Add excludeTags and spaceReplacement to default settings
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -39,7 +41,7 @@
 --   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
 --   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
-local DM_RENAMER_VERSION = "0.6.7-beta"
+local DM_RENAMER_VERSION = "0.6.8-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
@@ -272,10 +274,6 @@ local function saveFolderItemsSettings()
     Settings.current.folderItems.separator = state.folderItemSeparator
     Settings.current.folderItems.customPattern = state.folderItemCustomPattern
     Settings.current.folderItems.incrementMode = state.folderItemIncrementMode
-    -- Save exclude tags globally
-    Settings.current.excludeTags = state.excludeTags
-    -- Save space replacement setting
-    Settings.current.spaceReplacement = state.spaceReplacement
     Settings.save()
 end
 
@@ -390,30 +388,32 @@ local function hasProjectStateChanged()
         state.lastRegionCount = num_regions
     end
     
-    -- Check for region/marker name changes (important for Folder Items)
+    -- Check for region/marker changes: name, position, or size (important for Folder Items)
     local currentRegionNames = {}
     local currentMarkerNames = {}
-    
+
     for i = 0, num_markers + num_regions - 1 do
         local _, isRegion, pos, rgnend, name, markrgnindexnumber = reaper.EnumProjectMarkers3(0, i)
-        
+
         if isRegion then
-            local key = markrgnindexnumber .. "_" .. string.format("%.4f", pos)
-            currentRegionNames[key] = name
-            -- Check if name changed
-            if state.lastRegionNames[key] and state.lastRegionNames[key] ~= name then
+            local key = tostring(markrgnindexnumber)
+            local value = name .. "|" .. string.format("%.4f", pos) .. "|" .. string.format("%.4f", rgnend)
+            currentRegionNames[key] = value
+            -- Check if name, position, or size changed
+            if state.lastRegionNames[key] and state.lastRegionNames[key] ~= value then
                 changed = true
             end
         else
-            local key = markrgnindexnumber .. "_" .. string.format("%.4f", pos)
-            currentMarkerNames[key] = name
-            -- Check if name changed
-            if state.lastMarkerNames[key] and state.lastMarkerNames[key] ~= name then
+            local key = tostring(markrgnindexnumber)
+            local value = name .. "|" .. string.format("%.4f", pos)
+            currentMarkerNames[key] = value
+            -- Check if name or position changed
+            if state.lastMarkerNames[key] and state.lastMarkerNames[key] ~= value then
                 changed = true
             end
         end
     end
-    
+
     -- Update caches
     state.lastRegionNames = currentRegionNames
     state.lastMarkerNames = currentMarkerNames
@@ -1159,13 +1159,20 @@ local function loop()
         -- Handle Settings window if open
         if state.showSettingsWindow then
             state.showSettingsWindow = SettingsUI.showSettingsWindow(state.showSettingsWindow)
-            -- Sync exclude tags from Settings to state (live update)
-            local settingsExclude = Settings.current.excludeTags or ""
-            if settingsExclude ~= state.excludeTags then
-                state.excludeTags = settingsExclude
-                state.needsRefresh = true
-                state.needsPreview = true
-            end
+        end
+
+        -- Sync exclude tags and space replacement from Settings to state
+        -- (must be outside Settings window check to catch changes after window closes)
+        local settingsExclude = Settings.current.excludeTags or ""
+        if settingsExclude ~= state.excludeTags then
+            state.excludeTags = settingsExclude
+            state.needsRefresh = true
+            state.needsPreview = true
+        end
+        local settingsSpaceReplace = Settings.current.spaceReplacement or ""
+        if settingsSpaceReplace ~= state.spaceReplacement then
+            state.spaceReplacement = settingsSpaceReplace
+            state.needsPreview = true
         end
         
         -- Menu bar
@@ -1263,8 +1270,9 @@ local function loop()
                             state.spaceReplacement = ""
                             state.folderItemPattern = "hierarchical"
                             state.needsPreview = true
-                            -- Clear last used preset
+                            -- Clear last used preset and sync settings
                             Settings.current.lastPreset = nil
+                            Settings.current.spaceReplacement = state.spaceReplacement
                             Settings.save()
                         end
                     end
@@ -1744,6 +1752,8 @@ local function loop()
                 else
                     state.spaceReplacement = "_"  -- Set to underscore
                 end
+                Settings.current.spaceReplacement = state.spaceReplacement
+                Settings.save()
                 state.needsPreview = true
             end
             if isActive_underscore then
@@ -1763,6 +1773,8 @@ local function loop()
                 else
                     state.spaceReplacement = "-"  -- Set to dash
                 end
+                Settings.current.spaceReplacement = state.spaceReplacement
+                Settings.save()
                 state.needsPreview = true
             end
             if isActive_dash then
@@ -1782,6 +1794,8 @@ local function loop()
                 else
                     state.spaceReplacement = "remove"  -- Set to remove
                 end
+                Settings.current.spaceReplacement = state.spaceReplacement
+                Settings.save()
                 state.needsPreview = true
             end
             if isActive_remove then
@@ -2417,16 +2431,16 @@ end
 -- Initialize region/marker names cache
 local function initializeProjectCache()
     local retval, num_markers, num_regions = reaper.CountProjectMarkers(0)
-    
+
     for i = 0, num_markers + num_regions - 1 do
         local _, isRegion, pos, rgnend, name, markrgnindexnumber = reaper.EnumProjectMarkers3(0, i)
-        
+
         if isRegion then
-            local key = markrgnindexnumber .. "_" .. string.format("%.4f", pos)
-            state.lastRegionNames[key] = name
+            local key = tostring(markrgnindexnumber)
+            state.lastRegionNames[key] = name .. "|" .. string.format("%.4f", pos) .. "|" .. string.format("%.4f", rgnend)
         else
-            local key = markrgnindexnumber .. "_" .. string.format("%.4f", pos)
-            state.lastMarkerNames[key] = name
+            local key = tostring(markrgnindexnumber)
+            state.lastMarkerNames[key] = name .. "|" .. string.format("%.4f", pos)
         end
     end
 end

@@ -84,13 +84,17 @@ function Settings.getDefaultSettings()
             showTooltips = true
         },
         
+        -- Global settings
+        excludeTags = "",  -- Space-separated tags to exclude items/regions/tracks from renaming
+        spaceReplacement = "",  -- "" = none, "_" = underscore, "-" = dash, "remove" = remove spaces
+
         -- Folder Items options
         folderItems = {
             pattern = "hierarchical",
             separator = "_",
             customPattern = "$region1_$track1",
             incrementMode = "number",  -- "off", "number", or "letter"
-            excludeTag = ""
+            excludeTag = ""  -- Legacy field, kept for backwards compatibility
         },
 
         -- UI Appearance settings
@@ -122,40 +126,38 @@ end
 -- Current settings instance
 Settings.current = Settings.getDefaultSettings()
 
--- Serialize table to string
-local function serializeTable(tbl, indent)
-    indent = indent or 0
-    local spaces = string.rep("  ", indent)
-    local result = "{\n"
-    
+-- Serialize table to a single-line string (required for ExtState ini compatibility)
+local function serializeTable(tbl)
+    local parts = {"{"}
+
     for k, v in pairs(tbl) do
-        result = result .. spaces .. "  "
-        
         -- Handle key
+        local keyStr
         if type(k) == "string" then
-            result = result .. '["' .. k .. '"] = '
+            keyStr = '["' .. k .. '"]='
         else
-            result = result .. "[" .. tostring(k) .. "] = "
+            keyStr = "[" .. tostring(k) .. "]="
         end
-        
+
         -- Handle value
+        local valStr
         if type(v) == "table" then
-            result = result .. serializeTable(v, indent + 1)
+            valStr = serializeTable(v)
         elseif type(v) == "string" then
-            result = result .. '"' .. v:gsub('"', '\\"') .. '"'
+            valStr = '"' .. v:gsub('\\', '\\\\'):gsub('"', '\\"'):gsub('\n', '\\n'):gsub('\r', '\\r') .. '"'
         elseif type(v) == "boolean" then
-            result = result .. tostring(v)
+            valStr = tostring(v)
         elseif type(v) == "number" then
-            result = result .. tostring(v)
+            valStr = tostring(v)
         else
-            result = result .. "nil"
+            valStr = "nil"
         end
-        
-        result = result .. ",\n"
+
+        parts[#parts + 1] = keyStr .. valStr .. ","
     end
-    
-    result = result .. spaces .. "}"
-    return result
+
+    parts[#parts + 1] = "}"
+    return table.concat(parts)
 end
 
 -- Deserialize string to table
