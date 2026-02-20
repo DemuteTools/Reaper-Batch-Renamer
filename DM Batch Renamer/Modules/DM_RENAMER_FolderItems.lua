@@ -478,8 +478,8 @@ function FolderItems.updatePreview(itemList, pattern, options)
             item.preview = "(empty)"
         end
 
-        -- Changed if different from either notes OR name
-        item.changed = (item.preview ~= item.notes) or (item.preview ~= item.name)
+        -- Changed if different from displayed name (consistent with other modules)
+        item.changed = (item.preview ~= item.name)
     end
 
     -- Apply increment mode for duplicates (unified via Common)

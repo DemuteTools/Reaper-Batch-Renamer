@@ -1,10 +1,9 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.6.8-beta
+-- @version 0.6.9-beta
 -- @changelog
---   Fix settings not persisting across REAPER restarts (single-line serialization)
---   Fix region resize not triggering refresh
---   Add excludeTags and spaceReplacement to default settings
+--   Fix false-positive "changed" detection when increment suffix matches current name
+--   Fix folder items notes vs take name comparison causing phantom changes
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -41,7 +40,7 @@
 --   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
 --   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
-local DM_RENAMER_VERSION = "0.6.8-beta"
+local DM_RENAMER_VERSION = "0.6.9-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()

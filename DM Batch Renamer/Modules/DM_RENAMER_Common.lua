@@ -513,7 +513,7 @@ function Common.handleDuplicateNames(list, incrementMode, separator)
                     suffix = string.format("%02d", i)
                 end
                 items[i].preview = name .. separator .. suffix
-                items[i].changed = true
+                items[i].changed = (items[i].preview ~= items[i].name)
             end
         end
     end
