@@ -1,9 +1,10 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.6.9-beta
+-- @version 0.7.0-beta
 -- @changelog
---   Fix false-positive "changed" detection when increment suffix matches current name
---   Fix folder items notes vs take name comparison causing phantom changes
+--   Add clickable icon buttons: DEMUTE logo, website, Discord, and documentation links
+--   DEMUTE logo centered in header between presets and Settings
+--   Website, Discord and GitHub icons in footer next to version number
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -17,6 +18,10 @@
 --   [nomain] Modules/DM_RENAMER_Presets.lua
 --   [main] Modules/DM_RENAMER_TrackRegionMarkerSelection.lua
 --   [main] Modules/DM_RENAMER_ClearRegionMarkerSelection.lua
+--   [nomain] Icons/DEMUTE-logoW.png
+--   [nomain] Icons/android-icon-24x24.png
+--   [nomain] Icons/Discord-Symbol-Blurple.png
+--   [nomain] Icons/Documentation_Logo_W.png
 -- @link GitHub https://github.com/DemuteStudio/Reaper-Batch-Renamer
 -- @about
 --   # DM Batch Renamer
@@ -40,7 +45,7 @@
 --   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
 --   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
-local DM_RENAMER_VERSION = "0.6.9-beta"
+local DM_RENAMER_VERSION = "0.7.0-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
@@ -66,6 +71,22 @@ local SettingsUI = dofile(script_path .. "Modules/DM_RENAMER_Settings_UI.lua")
 
 -- Initialize ReaImGui
 local ctx = reaper.ImGui_CreateContext('DM RENAMER')
+
+-- Load icon images
+local icons_path = script_path .. "Icons/"
+local icon_logo = reaper.ImGui_CreateImage(icons_path .. "DEMUTE-logoW.png")
+local icon_website = reaper.ImGui_CreateImage(icons_path .. "android-icon-24x24.png")
+local icon_discord = reaper.ImGui_CreateImage(icons_path .. "Discord-Symbol-Blurple.png")
+local icon_docs = reaper.ImGui_CreateImage(icons_path .. "Documentation_Logo_W.png")
+reaper.ImGui_Attach(ctx, icon_logo)
+reaper.ImGui_Attach(ctx, icon_website)
+reaper.ImGui_Attach(ctx, icon_discord)
+reaper.ImGui_Attach(ctx, icon_docs)
+
+-- Icon URLs
+local URL_WEBSITE = "https://www.demute.studio/"
+local URL_DISCORD = "https://discord.gg/KGvhT5S8ZT"
+local URL_DOCS = "https://github.com/DemuteStudio/Reaper-Batch-Renamer"
 
 -- Initialize SettingsUI module
 SettingsUI.init(Settings, ctx)
@@ -1324,14 +1345,38 @@ local function loop()
                     end
                 end
             end
-            
-            -- Settings button (aligned to the right, visible for all tabs)
-            reaper.ImGui_SameLine(ctx)
-            local availWidth = reaper.ImGui_GetContentRegionAvail(ctx)
-            if availWidth > 100 then
-                -- Align to the right with some padding
-                reaper.ImGui_SetCursorPosX(ctx, reaper.ImGui_GetCursorPosX(ctx) + availWidth - 85)
+
+            -- Center: DEMUTE logo (absolute positioned, centered in the child)
+            local childW = reaper.ImGui_GetWindowWidth(ctx)
+            local childH = 50
+            local logoW, logoH = reaper.ImGui_Image_GetSize(icon_logo)
+            local logoDisplayH = 26
+            local logoDisplayW = logoW * (logoDisplayH / logoH)
+            local logoCenterX = (leftColumnWidth + (childW - leftColumnWidth - 100)) / 2 - logoDisplayW / 2 + 50
+            local logoCenterY = (childH - logoDisplayH) / 2
+
+            reaper.ImGui_SetCursorPos(ctx, logoCenterX, logoCenterY)
+            reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x00000000)
+            reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), 0x00000000)
+            reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), 0x00000000)
+            if reaper.ImGui_ImageButton(ctx, "##LogoBtn", icon_logo, logoDisplayW, logoDisplayH) then
+                reaper.CF_ShellExecute(URL_WEBSITE)
             end
+            reaper.ImGui_PopStyleColor(ctx, 3)
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Visit demute.studio")
+                reaper.ImGui_EndTooltip(ctx)
+            end
+
+            -- Right: Settings button (absolute positioned, vertically centered)
+            local settingsBtnText = "Settings \xE2\x9A\x99"
+            local settingsBtnW = reaper.ImGui_CalcTextSize(ctx, settingsBtnText) + 16
+            local btnH = reaper.ImGui_GetFrameHeight(ctx)
+            local settingsX = childW - settingsBtnW - 10
+            local settingsY = (childH - btnH) / 2
+
+            reaper.ImGui_SetCursorPos(ctx, settingsX, settingsY)
             if reaper.ImGui_Button(ctx, "Settings ⚙") then
                 state.showSettingsWindow = true
             end
@@ -2383,12 +2428,62 @@ local function loop()
         end
       end
 
-        -- Version label (bottom-right)
+        -- Bottom bar: icons + version label (right-aligned)
         local versionText = "v" .. DM_RENAMER_VERSION
         local windowWidth = reaper.ImGui_GetWindowWidth(ctx)
         local textWidth = reaper.ImGui_CalcTextSize(ctx, versionText)
+        local iconSize = 16
+        local iconSpacing = 4
+        local totalIconsWidth = (iconSize + iconSpacing) * 3 + 8 + textWidth + 15
+
         reaper.ImGui_SameLine(ctx)
-        reaper.ImGui_SetCursorPosX(ctx, windowWidth - textWidth - 15)
+        reaper.ImGui_SetCursorPosX(ctx, windowWidth - totalIconsWidth)
+
+        -- Transparent button style for icon buttons
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x00000000)
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonHovered(), 0xFFFFFF20)
+        reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_ButtonActive(), 0xFFFFFF40)
+        reaper.ImGui_PushStyleVar(ctx, reaper.ImGui_StyleVar_FramePadding(), 0, 0)
+
+        -- Website icon
+        if reaper.ImGui_ImageButton(ctx, "##WebsiteBtn", icon_website, iconSize, iconSize) then
+            reaper.CF_ShellExecute(URL_WEBSITE)
+        end
+        if reaper.ImGui_IsItemHovered(ctx) then
+            reaper.ImGui_BeginTooltip(ctx)
+            reaper.ImGui_Text(ctx, "Visit demute.studio")
+            reaper.ImGui_EndTooltip(ctx)
+        end
+
+        reaper.ImGui_SameLine(ctx, 0, iconSpacing)
+
+        -- Discord icon
+        if reaper.ImGui_ImageButton(ctx, "##DiscordBtn", icon_discord, iconSize, iconSize) then
+            reaper.CF_ShellExecute(URL_DISCORD)
+        end
+        if reaper.ImGui_IsItemHovered(ctx) then
+            reaper.ImGui_BeginTooltip(ctx)
+            reaper.ImGui_Text(ctx, "Join our Discord")
+            reaper.ImGui_EndTooltip(ctx)
+        end
+
+        reaper.ImGui_SameLine(ctx, 0, iconSpacing)
+
+        -- Documentation icon
+        if reaper.ImGui_ImageButton(ctx, "##DocsBtn", icon_docs, iconSize, iconSize) then
+            reaper.CF_ShellExecute(URL_DOCS)
+        end
+        if reaper.ImGui_IsItemHovered(ctx) then
+            reaper.ImGui_BeginTooltip(ctx)
+            reaper.ImGui_Text(ctx, "View documentation on GitHub")
+            reaper.ImGui_EndTooltip(ctx)
+        end
+
+        reaper.ImGui_PopStyleVar(ctx, 1)
+        reaper.ImGui_PopStyleColor(ctx, 3)
+
+        -- Version text
+        reaper.ImGui_SameLine(ctx, 0, 8)
         reaper.ImGui_TextDisabled(ctx, versionText)
 
         reaper.ImGui_End(ctx)
