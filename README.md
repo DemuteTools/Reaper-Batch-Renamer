@@ -224,6 +224,8 @@ All controls below are available on **every tab**. They stack — you can combin
 
 ### Find and Replace
 
+<img width="353" height="405" alt="image" src="https://github.com/user-attachments/assets/445b67d0-357c-48cc-97b6-91822a49f54b" />
+
 | Field | Description |
 |-------|-------------|
 | **Find** | Text to search for in the current names |
@@ -233,6 +235,8 @@ The preview updates automatically as you type.
 
 ### Prefix and Suffix
 
+<img width="353" height="402" alt="image" src="https://github.com/user-attachments/assets/1e0751ae-dea0-4fdc-bcf9-57f053a98a7d" />
+
 | Field | Description |
 |-------|-------------|
 | **Prefix** | Text added before the name |
@@ -240,17 +244,21 @@ The preview updates automatically as you type.
 
 ### Operations
 
+<img width="355" height="397" alt="image" src="https://github.com/user-attachments/assets/294e20f3-9e99-4059-8db9-62a244af499e" />
+
 A dropdown with quick transformations. Select one from the list:
 
 | Operation | Effect | Example |
 |-----------|--------|---------|
 | None | No operation | — |
-| Add Date (YYYY-MM-DD) | Appends today's date | `Guitar` → `Guitar_2026-02-17` |
-| Add Timestamp (MM-SS-mmm) | Appends the item's timeline position (minutes-seconds-milliseconds) | `Vocal` → `Vocal_02-34-150` |
-| Remove [Brackets] and Content | Deletes `[...]` and everything inside | `Track [old]` → `Track ` |
-| Remove (Parentheses) and Content | Deletes `(...)` and everything inside | `Bass (DI)` → `Bass ` |
+| Add Date (YYYY-MM-DD) | Appends today's date | `VoiceRecording` → `VoiceRecording_2026-02-17` |
+| Add Timestamp (MM-SS-mmm) | Appends the item's timeline position (minutes-seconds-milliseconds) | `VoiceRecording` → `VoiceRecording_02-34-150` |
+| Remove [Brackets] and Content | Deletes `[...]` and everything inside | `VoiceRecording [old]` → `VoiceRecording ` |
+| Remove (Parentheses) and Content | Deletes `(...)` and everything inside | `VoiceRecording (old)` → `VoiceRecording ` |
 
 ### Case Transformations
+
+<img width="355" height="402" alt="image" src="https://github.com/user-attachments/assets/7ebc4a84-4800-4a9c-b385-da27784245ff" />
 
 A dropdown to transform the case of all names:
 
@@ -269,6 +277,8 @@ A dropdown to transform the case of all names:
 
 ### Replace Spaces
 
+<img width="353" height="406" alt="image" src="https://github.com/user-attachments/assets/956c470a-ea28-4031-bc2c-4a0dd4a6c58f" />
+
 Three toggle buttons to replace spaces in all names:
 
 | Button | Effect |
@@ -281,17 +291,21 @@ Click the active button again to toggle it off.
 
 ### Increment Mode
 
+<img width="355" height="405" alt="image" src="https://github.com/user-attachments/assets/d5bfdbb1-f6e1-4385-a04f-4afb784801a3" />
+
 Handles duplicate names by appending a suffix. Choose one:
 
 | Mode | Behavior | Example |
 |------|----------|---------|
-| **Off** | No duplicate handling | `Drums`, `Drums`, `Drums` |
-| **Number** | Appends `_01`, `_02`, etc. | `Drums_01`, `Drums_02`, `Drums_03` |
-| **Letter** | Appends `_A`, `_B`, ..., `_Z`, `_AA`, etc. | `Drums_A`, `Drums_B`, `Drums_C` |
+| **Off** | No duplicate handling | `Sfx`, `Sfx`, `Sfx` |
+| **Number** | Appends `_01`, `_02`, etc. | `Sfx_01`, `Sfx_02`, `Sfx_03` |
+| **Letter** | Appends `_A`, `_B`, ..., `_Z`, `_AA`, etc. | `Sfx_A`, `Sfx_B`, `Sfx_C` |
 
 ---
 
 ## Options
+
+<img width="354" height="405" alt="image" src="https://github.com/user-attachments/assets/1a066b61-c8d8-4902-8474-8eaf8dff5677" />
 
 | Option | Description |
 |--------|-------------|
@@ -303,7 +317,11 @@ Handles duplicate names by appending a suffix. Choose one:
 
 ## Working with the Preview Table
 
+<img width="1511" height="554" alt="image" src="https://github.com/user-attachments/assets/c04bb33e-82c7-4f5c-b617-1d7285cc7862" />
+
 ### Selecting Items
+
+<img width="354" height="407" alt="image" src="https://github.com/user-attachments/assets/993fcf33-ec8f-45ff-a352-6455d7b74ec7" />
 
 Three buttons below the options section control which items are checked:
 
@@ -315,12 +333,16 @@ Items with changes are automatically checked when you modify any renaming parame
 
 ### Inline Editing
 
+<img width="815" height="109" alt="image" src="https://github.com/user-attachments/assets/8792fa2a-34f9-438d-8765-37e093728405" />
+
 **Double-click** any name in the Current Name or Target Name column to edit it directly. Press **Enter** to confirm or **Escape** to cancel.
 
 - Editing a **Current Name** renames the item immediately.
 - Editing a **Target Name** sets a custom preview name for that item.
 
 ### Sorting Columns
+
+<img width="352" height="159" alt="image" src="https://github.com/user-attachments/assets/8f37d064-6926-4c88-8e92-4d92633e8c72" />
 
 Click any column header (Current Name, Target Name, Context, Type) to sort the list. Click again to toggle ascending/descending. A **▲** or **▼** indicator shows the current sort direction.
 
@@ -331,6 +353,8 @@ When **Jump to position on select** is enabled, clicking a row in the preview ta
 ---
 
 ## Presets
+
+<img width="364" height="114" alt="image" src="https://github.com/user-attachments/assets/8af1d834-e671-4646-8826-a09fda88bc25" />
 
 Presets save your entire renaming configuration so you can reuse it later.
 
@@ -365,6 +389,8 @@ The last used preset is automatically restored when you reopen the script.
 
 ### Naming Patterns
 
+<img width="348" height="102" alt="image" src="https://github.com/user-attachments/assets/7d79c8b2-d5d1-4ab2-a34c-eb83bfdf9d8e" />
+
 | Pattern | Description | Example output |
 |---------|-------------|----------------|
 | **Simple** | First region + direct track name | `SFX_Dirt` |
@@ -372,6 +398,8 @@ The last used preset is automatically restored when you reopen the script.
 | **Custom** | User-defined pattern with variables | Depends on your pattern |
 
 ### Custom Pattern Variables
+
+<img width="335" height="142" alt="image" src="https://github.com/user-attachments/assets/c7ab47f5-42e4-4f0b-a201-5e5e8193a3cf" />
 
 When you select the **Custom pattern** mode, you build a naming template using these variables:
 
@@ -388,13 +416,18 @@ When you select the **Custom pattern** mode, you build a naming template using t
 
 **Examples:**
 
+<img width="1490" height="174" alt="image" src="https://github.com/user-attachments/assets/6c837ffb-9783-48aa-b218-c5888089b919" />
+
 | Pattern | Result |
 |---------|--------|
+|`$region2_$track1_$region1` | `Attack_A_Voice Digital_Sfx_MyAmazingSoundDesign` | 
 | `$region1_$track1` | `sfx_dirt` |
 | `$region2_$region3` | `boss_attack` |
 | `$track2_$region1` | `grass_sfx` |
 
 ### Separator Options
+
+<img width="283" height="31" alt="image" src="https://github.com/user-attachments/assets/3bd93322-db27-41b2-8fab-1b91002e3dbd" />
 
 Choose the character that joins name parts:
 
@@ -407,6 +440,8 @@ Choose the character that joins name parts:
 
 ## Exclude Tags
 
+<img width="531" height="194" alt="image" src="https://github.com/user-attachments/assets/0a227e26-5908-4a6c-867f-252ec17fe2a7" />
+
 Enter space-separated tags in the **Settings** window under **Exclude Tags**. Any item, region, or track whose name **starts with** one of these tags is excluded from the renaming list.
 
 **Example:** If you set exclude tags to `TEMP OLD SKIP`, then:
@@ -415,6 +450,10 @@ Enter space-separated tags in the **Settings** window under **Exclude Tags**. An
 - `OLD_Bass` — excluded
 - `SKIP_Drums` — excluded
 - `My_Guitar` — included
+
+<img width="1235" height="781" alt="image" src="https://github.com/user-attachments/assets/09f6d820-1a53-4383-a3b7-f60860940302" />
+
+Here the track //MIX is not include in the Folder Item name because the exclude tag is `//`
 
 ---
 
@@ -431,7 +470,12 @@ Each tab displays all elements of its own type:
 
 **Time selection** acts as a filter: when a time selection is active, only the elements that overlap with it are shown. Remove the time selection to see everything again.
 
+<img width="1085" height="1068" alt="image" src="https://github.com/user-attachments/assets/07e2abfc-5172-410e-b15b-e3f8cff461a9" />
+<img width="894" height="1100" alt="image" src="https://github.com/user-attachments/assets/d2fc68b8-3d46-4a1f-83d8-dd224cc88fcc" />
+
 For **Media Items** and **Folder Items**, selecting specific items in REAPER also acts as a filter — only those selected items appear in the list.
+
+<img width="1006" height="743" alt="image" src="https://github.com/user-attachments/assets/3a1558ea-c561-4549-9955-9edf6a1eac8d" />
 
 For **Tracks**, selecting specific tracks in REAPER filters the list to those tracks only.
 
