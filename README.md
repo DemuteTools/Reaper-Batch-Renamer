@@ -150,6 +150,8 @@ A sortable table showing:
 
 ### Folder Items
 
+<img width="1511" height="554" alt="image" src="https://github.com/user-attachments/assets/4e688ce4-6513-41c8-95df-a1fa82f5d58d" />
+
 Designed for **empty items** (items without audio or MIDI content). These are commonly used in game audio workflows with NVK or RenderBlock setups, where empty items serve as naming containers.
 
 **Note:** Items with the name or notes `[JOIN]` (used by the NVK suite for folder detection) are automatically excluded from the Folder Items list.
@@ -165,6 +167,8 @@ If you don't use NVK-style folder items, you can safely hide this tab.
 
 #### Re-enabling the Tab
 
+<img width="553" height="79" alt="image" src="https://github.com/user-attachments/assets/0b1d7663-e957-4178-85b8-cd2a473cfd3a" />
+
 To show the Folder Items tab again after hiding it, go to **Settings** (`Ctrl+,` or the Settings button) and check **"Show Folder Items tab"** under the Folder Items Tab section.
 
 #### Tab Controls
@@ -178,6 +182,8 @@ See [Folder Items — Advanced Usage](#folder-items--advanced-usage) for full de
 
 ### All
 
+<img width="1511" height="554" alt="image" src="https://github.com/user-attachments/assets/dc69fc47-1d7a-439a-98b4-0d4d8b4632d7" />
+
 Displays every renamable element in a single list. The table includes a **Type** column with color-coded labels and a **Context** column.
 
 - Green: Media Item
@@ -188,17 +194,25 @@ Displays every renamable element in a single list. The table includes a **Type**
 
 ### Media Items
 
+<img width="1511" height="554" alt="image" src="https://github.com/user-attachments/assets/f5742e2f-0d6c-4412-ba64-b68169664162" />
+
 Shows all audio/MIDI items. Respects the current selection and time selection.
 
 ### Regions
+
+<img width="1511" height="554" alt="image" src="https://github.com/user-attachments/assets/09463ad3-d611-4a9c-ab1c-18def4c818ca" />
 
 Shows timeline regions. Supports selection via time selection or through the companion selection script (see [Companion Scripts](#companion-scripts)).
 
 ### Markers
 
+<img width="1511" height="554" alt="image" src="https://github.com/user-attachments/assets/dc484879-ed69-4c7b-83c8-46aa3c8ae901" />
+
 Shows timeline markers. Same selection behavior as Regions.
 
 ### Tracks
+
+<img width="1511" height="554" alt="image" src="https://github.com/user-attachments/assets/ce113fc4-71a6-43ae-8c75-e3be425f0751" />
 
 Shows all tracks. Respects the current track selection in REAPER.
 
