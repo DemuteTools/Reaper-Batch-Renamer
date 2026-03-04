@@ -348,6 +348,8 @@ Click any column header (Current Name, Target Name, Context, Type) to sort the l
 
 ### Jump to Position
 
+![reaper_XPwV3yLuHa_1](https://github.com/user-attachments/assets/1a1d191f-7e1b-460c-aacb-a137df727b71)
+
 When **Jump to position on select** is enabled, clicking a row in the preview table moves the REAPER arrange view to that element's timeline position.
 
 ---
