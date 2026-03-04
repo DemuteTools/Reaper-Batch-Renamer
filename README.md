@@ -1,5 +1,7 @@
 # DM Batch Renamer
 
+<img width="1511" height="554" alt="image" src="https://github.com/user-attachments/assets/f46ec0cb-48fd-4c3e-82d1-94b8259c7643" />
+
 Batch renaming tool for REAPER. Rename multiple items, tracks, regions, and markers at once with live preview before applying changes.
 
 ## Why Use This Tool?
