@@ -1,10 +1,9 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.7.0-beta
+-- @version 0.8.0-beta
 -- @changelog
---   Add clickable icon buttons: DEMUTE logo, website, Discord, and documentation links
---   DEMUTE logo centered in header between presets and Settings
---   Website, Discord and GitHub icons in footer next to version number
+--   Configurable digit padding for the increment suffix (new Digits field)
+--   New "Truncate from" control: remove N characters from the start/end of names
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -45,7 +44,7 @@
 --   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
 --   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
-local DM_RENAMER_VERSION = "0.7.0-beta"
+local DM_RENAMER_VERSION = "0.8.0-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
