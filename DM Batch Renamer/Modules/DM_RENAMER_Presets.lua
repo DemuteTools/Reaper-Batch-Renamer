@@ -31,7 +31,6 @@ function Presets.save(name, state)
         incrementMode = state.incrementMode,
         incrementPadding = state.incrementPadding,
         autoSelectChanged = state.autoSelectChanged,
-        jumpToPosition = state.jumpToPosition,
         -- Add folder items specific settings
         folderItemPattern = state.folderItemPattern,
         folderItemSeparator = state.folderItemSeparator,

@@ -262,6 +262,11 @@ if Settings.current.folderItems then
     state.spaceReplacement = Settings.current.spaceReplacement or state.spaceReplacement
 end
 
+-- Load global view preference (boolean: use ~= nil so a stored false is honored)
+if Settings.current.jumpToPosition ~= nil then
+    state.jumpToPosition = Settings.current.jumpToPosition
+end
+
 -- Restore last used preset on startup
 if Settings.current.lastPreset then
     local preset = Presets.load(Settings.current.lastPreset)
@@ -280,6 +285,10 @@ if Settings.current.lastPreset then
             state.folderItemIncrementMode = Settings.current.folderItems.incrementMode or state.folderItemIncrementMode
             state.excludeTags = Settings.current.excludeTags or Settings.current.folderItems.excludeTag or state.excludeTags
             state.spaceReplacement = Settings.current.spaceReplacement or state.spaceReplacement
+        end
+        -- Re-apply global view pref so an (old) preset can't override the Settings value
+        if Settings.current.jumpToPosition ~= nil then
+            state.jumpToPosition = Settings.current.jumpToPosition
         end
     else
         -- Preset no longer exists, clear the reference
@@ -1220,6 +1229,17 @@ local function loop()
                 if reaper.ImGui_MenuItem(ctx, "Appearance Settings...", "Ctrl+,") then
                     state.showSettingsWindow = true
                 end
+                local jumpClicked, jumpVal = reaper.ImGui_MenuItem(ctx, "Jump to position on select", nil, state.jumpToPosition)
+                if jumpClicked then
+                    state.jumpToPosition = jumpVal
+                    Settings.current.jumpToPosition = state.jumpToPosition
+                    Settings.save()
+                end
+                if reaper.ImGui_IsItemHovered(ctx) then
+                    reaper.ImGui_BeginTooltip(ctx)
+                    reaper.ImGui_Text(ctx, "Move view to selected item position in timeline")
+                    reaper.ImGui_EndTooltip(ctx)
+                end
                 reaper.ImGui_Separator(ctx)
                 if reaper.ImGui_MenuItem(ctx, "Reset to Defaults") then
                     -- Reset appearance to defaults
@@ -1277,6 +1297,11 @@ local function loop()
                                 -- Apply preset to state
                                 for k, v in pairs(preset) do
                                     state[k] = v
+                                end
+                                -- jumpToPosition is a global Settings pref, not a rename preset:
+                                -- don't let an old preset (which may still carry the key) override it
+                                if Settings.current.jumpToPosition ~= nil then
+                                    state.jumpToPosition = Settings.current.jumpToPosition
                                 end
                                 state.selectedPreset = name
                                 state.needsPreview = true
@@ -1675,28 +1700,133 @@ local function loop()
                 state.needsPreview = true  -- Trigger automatic preview
             end
             
-            -- Prefix/Suffix controls
-            reaper.ImGui_Text(ctx, "Prefix:")
-            reaper.ImGui_SameLine(ctx)
+            -- Search modifiers (Case Sensitive / Whole Word) kept next to Find/Replace
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, -1)
-            local changedPrefix, newPrefix = reaper.ImGui_InputText(ctx, "##Prefix", state.prefix)
-            if changedPrefix then
-                state.prefix = newPrefix
+            local caseChanged, newCase = reaper.ImGui_Checkbox(ctx, "Case Sensitive", state.caseSensitive)
+            if caseChanged then
+                state.caseSensitive = newCase
                 state.needsPreview = true
             end
-
-            reaper.ImGui_Text(ctx, "Suffix:")
-            reaper.ImGui_SameLine(ctx)
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Match exact case (uppercase/lowercase) when searching")
+                reaper.ImGui_EndTooltip(ctx)
+            end
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, -1)
-            local changedSuffix, newSuffix = reaper.ImGui_InputText(ctx, "##Suffix", state.suffix)
-            if changedSuffix then
-                state.suffix = newSuffix
+            local wholeChanged, newWhole = reaper.ImGui_Checkbox(ctx, "Whole Word", state.wholeWord)
+            if wholeChanged then
+                state.wholeWord = newWhole
                 state.needsPreview = true
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Only match complete words, not partial matches")
+                reaper.ImGui_EndTooltip(ctx)
             end
 
             reaper.ImGui_Separator(ctx)
+
+            -- CLEAN UP family: Operation, Replace spaces, Truncate
+            -- Operation dropdown
+            reaper.ImGui_Text(ctx, "Operation:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            reaper.ImGui_SetNextItemWidth(ctx, -1)
+
+            -- Operation descriptions (simplified - duplicates removed)
+            local operationLabels = {
+                none = "None",
+                addDate = "Add Date (YYYY-MM-DD)",
+                addTimestamp = "Add Timestamp (HH-MM-SS)",
+                removeBrackets = "Remove [Brackets] and Content",
+                removeParens = "Remove (Parentheses) and Content"
+            }
+
+            -- Operations in display order (None first, then alphabetical)
+            local operationOrder = {"none", "addDate", "addTimestamp", "removeBrackets", "removeParens"}
+
+            local currentOpLabel = operationLabels[state.operation] or "None"
+
+            if reaper.ImGui_BeginCombo(ctx, "##Operations", currentOpLabel) then
+                for _, op in ipairs(operationOrder) do
+                    local label = operationLabels[op]
+                    local isSelected = (state.operation == op)
+                    if reaper.ImGui_Selectable(ctx, label, isSelected) then
+                        state.operation = op
+                        state.needsPreview = true
+                    end
+                    if isSelected then
+                        reaper.ImGui_SetItemDefaultFocus(ctx)
+                    end
+                end
+                reaper.ImGui_EndCombo(ctx)
+            end
+
+            -- Replace spaces buttons
+            reaper.ImGui_Text(ctx, "Replace spaces:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+
+            -- Underscore button
+            local isActive_underscore = state.spaceReplacement == "_"
+            if isActive_underscore then
+                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x4CAF50FF)
+            end
+            if reaper.ImGui_Button(ctx, "_") then
+                if state.spaceReplacement == "_" then
+                    state.spaceReplacement = ""  -- Toggle off
+                else
+                    state.spaceReplacement = "_"  -- Set to underscore
+                end
+                Settings.current.spaceReplacement = state.spaceReplacement
+                Settings.save()
+                state.needsPreview = true
+            end
+            if isActive_underscore then
+                reaper.ImGui_PopStyleColor(ctx)
+            end
+
+            reaper.ImGui_SameLine(ctx)
+
+            -- Dash button
+            local isActive_dash = state.spaceReplacement == "-"
+            if isActive_dash then
+                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x4CAF50FF)
+            end
+            if reaper.ImGui_Button(ctx, "-") then
+                if state.spaceReplacement == "-" then
+                    state.spaceReplacement = ""  -- Toggle off
+                else
+                    state.spaceReplacement = "-"  -- Set to dash
+                end
+                Settings.current.spaceReplacement = state.spaceReplacement
+                Settings.save()
+                state.needsPreview = true
+            end
+            if isActive_dash then
+                reaper.ImGui_PopStyleColor(ctx)
+            end
+
+            reaper.ImGui_SameLine(ctx)
+
+            -- Remove button
+            local isActive_remove = state.spaceReplacement == "remove"
+            if isActive_remove then
+                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x4CAF50FF)
+            end
+            if reaper.ImGui_Button(ctx, "Remove") then
+                if state.spaceReplacement == "remove" then
+                    state.spaceReplacement = ""  -- Toggle off
+                else
+                    state.spaceReplacement = "remove"  -- Set to remove
+                end
+                Settings.current.spaceReplacement = state.spaceReplacement
+                Settings.save()
+                state.needsPreview = true
+            end
+            if isActive_remove then
+                reaper.ImGui_PopStyleColor(ctx)
+            end
 
             -- Truncate from: remove N chars from start/end of the name (applied before prefix/suffix)
             reaper.ImGui_Text(ctx, "Truncate from:")
@@ -1731,88 +1861,39 @@ local function loop()
             end
 
             reaper.ImGui_Separator(ctx)
-            
-            -- Pattern dropdown (hidden - Lua patterns disabled for now)
-            -- reaper.ImGui_Text(ctx, "Pattern:")
-            -- reaper.ImGui_SameLine(ctx)
-            -- reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            -- reaper.ImGui_SetNextItemWidth(ctx, 250)
-            --
-            -- local patternDisplay = state.selectedPattern and state.selectedPattern.name or "Choose pattern..."
-            -- if reaper.ImGui_BeginCombo(ctx, "##PatternPresets", patternDisplay) then
-            --     for _, pattern in ipairs(state.commonPatterns) do
-            --         local showPattern = pattern.context == "all" or
-            --                            pattern.context == state.currentTab or
-            --                            not pattern.context
-            --         if showPattern then
-            --             local isSelected = (state.selectedPattern == pattern)
-            --             local displayText = pattern.name .. " - " .. pattern.desc
-            --             if pattern.context and pattern.context ~= "all" then
-            --                 displayText = "[" .. pattern.context .. "] " .. displayText
-            --             end
-            --             if reaper.ImGui_Selectable(ctx, displayText, isSelected) then
-            --                 state.selectedPattern = pattern
-            --                 if pattern.name ~= "-- None --" then
-            --                     state.findText = pattern.pattern
-            --                     state.replaceText = pattern.replace
-            --                     state.useLuaPatterns = true
-            --                     state.patternValid, state.patternError = Common.validatePattern(pattern.pattern)
-            --                 end
-            --                 state.needsPreview = true
-            --             end
-            --             if isSelected then
-            --                 reaper.ImGui_SetItemDefaultFocus(ctx)
-            --             end
-            --         end
-            --     end
-            --     reaper.ImGui_EndCombo(ctx)
-            -- end
-            
-            -- Operation dropdown
-            reaper.ImGui_Text(ctx, "Operation:")
+
+            -- ADD & FORMAT family: Prefix, Suffix, Case
+            -- Prefix/Suffix controls
+            reaper.ImGui_Text(ctx, "Prefix:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
             reaper.ImGui_SetNextItemWidth(ctx, -1)
-            
-            -- Operation descriptions (simplified - duplicates removed)
-            local operationLabels = {
-                none = "None",
-                addDate = "Add Date (YYYY-MM-DD)",
-                addTimestamp = "Add Timestamp (HH-MM-SS)",
-                removeBrackets = "Remove [Brackets] and Content",
-                removeParens = "Remove (Parentheses) and Content"
-            }
-            
-            -- Operations in display order (None first, then alphabetical)
-            local operationOrder = {"none", "addDate", "addTimestamp", "removeBrackets", "removeParens"}
-            
-            local currentOpLabel = operationLabels[state.operation] or "None"
-            
-            if reaper.ImGui_BeginCombo(ctx, "##Operations", currentOpLabel) then
-                for _, op in ipairs(operationOrder) do
-                    local label = operationLabels[op]
-                    local isSelected = (state.operation == op)
-                    if reaper.ImGui_Selectable(ctx, label, isSelected) then
-                        state.operation = op
-                        state.needsPreview = true
-                    end
-                    if isSelected then
-                        reaper.ImGui_SetItemDefaultFocus(ctx)
-                    end
-                end
-                reaper.ImGui_EndCombo(ctx)
+            local changedPrefix, newPrefix = reaper.ImGui_InputText(ctx, "##Prefix", state.prefix)
+            if changedPrefix then
+                state.prefix = newPrefix
+                state.needsPreview = true
             end
-            
+
+            reaper.ImGui_Text(ctx, "Suffix:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            reaper.ImGui_SetNextItemWidth(ctx, -1)
+            local changedSuffix, newSuffix = reaper.ImGui_InputText(ctx, "##Suffix", state.suffix)
+            if changedSuffix then
+                state.suffix = newSuffix
+                state.needsPreview = true
+            end
+
             -- Transform Case dropdown
             reaper.ImGui_Text(ctx, "Case:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
             reaper.ImGui_SetNextItemWidth(ctx, -1)
-            
+
             -- Build display text for dropdown with sorted order
             local caseOrder = {"none", "camel", "constant", "kebab", "lower", "pascal", "sentence", "snake", "title", "upper"}
             local caseDisplay = state.caseExamples[state.transformCase] or "None"
-            
+
             if reaper.ImGui_BeginCombo(ctx, "##CaseTransform", caseDisplay) then
                 for _, caseType in ipairs(caseOrder) do
                     local example = state.caseExamples[caseType]
@@ -1827,75 +1908,10 @@ local function loop()
                 end
                 reaper.ImGui_EndCombo(ctx)
             end
-            
-            -- Replace spaces buttons
-            reaper.ImGui_Text(ctx, "Replace spaces:")
-            reaper.ImGui_SameLine(ctx)
-            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            
-            -- Underscore button
-            local isActive_underscore = state.spaceReplacement == "_"
-            if isActive_underscore then
-                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x4CAF50FF)
-            end
-            if reaper.ImGui_Button(ctx, "_") then
-                if state.spaceReplacement == "_" then
-                    state.spaceReplacement = ""  -- Toggle off
-                else
-                    state.spaceReplacement = "_"  -- Set to underscore
-                end
-                Settings.current.spaceReplacement = state.spaceReplacement
-                Settings.save()
-                state.needsPreview = true
-            end
-            if isActive_underscore then
-                reaper.ImGui_PopStyleColor(ctx)
-            end
-            
-            reaper.ImGui_SameLine(ctx)
-            
-            -- Dash button
-            local isActive_dash = state.spaceReplacement == "-"
-            if isActive_dash then
-                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x4CAF50FF)
-            end
-            if reaper.ImGui_Button(ctx, "-") then
-                if state.spaceReplacement == "-" then
-                    state.spaceReplacement = ""  -- Toggle off
-                else
-                    state.spaceReplacement = "-"  -- Set to dash
-                end
-                Settings.current.spaceReplacement = state.spaceReplacement
-                Settings.save()
-                state.needsPreview = true
-            end
-            if isActive_dash then
-                reaper.ImGui_PopStyleColor(ctx)
-            end
-            
-            reaper.ImGui_SameLine(ctx)
-            
-            -- Remove button
-            local isActive_remove = state.spaceReplacement == "remove"
-            if isActive_remove then
-                reaper.ImGui_PushStyleColor(ctx, reaper.ImGui_Col_Button(), 0x4CAF50FF)
-            end
-            if reaper.ImGui_Button(ctx, "Remove") then
-                if state.spaceReplacement == "remove" then
-                    state.spaceReplacement = ""  -- Toggle off
-                else
-                    state.spaceReplacement = "remove"  -- Set to remove
-                end
-                Settings.current.spaceReplacement = state.spaceReplacement
-                Settings.save()
-                state.needsPreview = true
-            end
-            if isActive_remove then
-                reaper.ImGui_PopStyleColor(ctx)
-            end
-            
+
             reaper.ImGui_Separator(ctx)
 
+            -- NUMBERING family: Increment + Digits
             -- Increment mode option (use different state for Folder Items tab)
             local currentIncrementMode = state.currentTab == "Folder Items" and state.folderItemIncrementMode or state.incrementMode
             reaper.ImGui_Text(ctx, "Increment:")
@@ -1950,77 +1966,6 @@ local function loop()
                     reaper.ImGui_Text(ctx, "Digits in the increment suffix (1-6). E.g. 2 -> _01, 3 -> _001")
                     reaper.ImGui_EndTooltip(ctx)
                 end
-            end
-
-            reaper.ImGui_Separator(ctx)
-
-            -- Options checkboxes
-            reaper.ImGui_Text(ctx, "Options:")
-            reaper.ImGui_SameLine(ctx)
-            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            local caseChanged, newCase = reaper.ImGui_Checkbox(ctx, "Case Sensitive", state.caseSensitive)
-            if caseChanged then
-                state.caseSensitive = newCase
-                state.needsPreview = true
-            end
-            if reaper.ImGui_IsItemHovered(ctx) then
-                reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Match exact case (uppercase/lowercase) when searching")
-                reaper.ImGui_EndTooltip(ctx)
-            end
-            
-            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            local wholeChanged, newWhole = reaper.ImGui_Checkbox(ctx, "Whole Word", state.wholeWord)
-            if wholeChanged then
-                state.wholeWord = newWhole
-                state.needsPreview = true
-            end
-            if reaper.ImGui_IsItemHovered(ctx) then
-                reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Only match complete words, not partial matches")
-                reaper.ImGui_EndTooltip(ctx)
-            end
-            
-            -- Use Lua Patterns checkbox (hidden - Lua patterns disabled for now)
-            -- reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            -- local patternChanged, newPattern = reaper.ImGui_Checkbox(ctx, "Use Lua Patterns", state.useLuaPatterns)
-            -- if patternChanged then
-            --     state.useLuaPatterns = newPattern
-            --     if newPattern then
-            --         state.patternValid, state.patternError = Common.validatePattern(state.findText)
-            --     else
-            --         state.patternValid = true
-            --         state.patternError = ""
-            --     end
-            --     state.needsPreview = true
-            -- end
-            -- if reaper.ImGui_IsItemHovered(ctx) then
-            --     reaper.ImGui_BeginTooltip(ctx)
-            --     reaper.ImGui_Text(ctx, "Enable Lua regular expressions for advanced pattern matching")
-            --     reaper.ImGui_EndTooltip(ctx)
-            -- end
-            
-            -- Auto-select changed (hidden - hardcoded to true, always auto-check changed items)
-            -- reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            -- local autoChanged, newAuto = reaper.ImGui_Checkbox(ctx, "Auto-select changed", state.autoSelectChanged)
-            -- if autoChanged then
-            --     state.autoSelectChanged = newAuto
-            -- end
-            -- if reaper.ImGui_IsItemHovered(ctx) then
-            --     reaper.ImGui_BeginTooltip(ctx)
-            --     reaper.ImGui_Text(ctx, "Automatically check items that have changes")
-            --     reaper.ImGui_EndTooltip(ctx)
-            -- end
-            
-            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            local jumpChanged, newJump = reaper.ImGui_Checkbox(ctx, "Jump to position on select", state.jumpToPosition)
-            if jumpChanged then
-                state.jumpToPosition = newJump
-            end
-            if reaper.ImGui_IsItemHovered(ctx) then
-                reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Move view to selected item position in timeline")
-                reaper.ImGui_EndTooltip(ctx)
             end
             
             -- Show pattern error if invalid

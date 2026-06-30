@@ -87,6 +87,7 @@ function Settings.getDefaultSettings()
         -- Global settings
         excludeTags = "",  -- Space-separated tags to exclude items/regions/tracks from renaming
         spaceReplacement = "",  -- "" = none, "_" = underscore, "-" = dash, "remove" = remove spaces
+        jumpToPosition = true,  -- Move timeline view to selected item position (global view pref)
 
         -- Folder Items options
         folderItems = {
