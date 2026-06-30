@@ -22,7 +22,7 @@ The script runs inside REAPER as a dockable ReaImGui window. Select a tab for th
 
 ---
 
-**Version:** 0.10.1-beta
+**Version:** 0.11.0-beta
 **Author:** Anthony Deneyer
 
 ---
