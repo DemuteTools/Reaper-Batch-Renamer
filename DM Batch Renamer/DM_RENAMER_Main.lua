@@ -1,9 +1,11 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.8.0-beta
+-- @version 0.9.0-beta
 -- @changelog
---   Configurable digit padding for the increment suffix (new Digits field)
---   New "Truncate from" control: remove N characters from the start/end of names
+--   Regrouped the left-column controls by family for clarity
+--   Truncate now acts on the source name and sits above Find/Replace
+--   Moved "Jump to position on select" into Settings > General
+--   Fix: "Whole Word" now works without also enabling "Case Sensitive"
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -44,7 +46,7 @@
 --   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
 --   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
-local DM_RENAMER_VERSION = "0.8.0-beta"
+local DM_RENAMER_VERSION = "0.9.0-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
