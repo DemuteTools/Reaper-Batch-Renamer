@@ -458,6 +458,11 @@ function FolderItems.updatePreview(itemList, pattern, options)
             end
         end
 
+        -- 2.7. Remove characters from start/end (before prefix/suffix)
+        if (options.removeFromStart and options.removeFromStart > 0) or (options.removeFromEnd and options.removeFromEnd > 0) then
+            generatedName = Common.removeChars(generatedName, options.removeFromStart, options.removeFromEnd)
+        end
+
         -- 3. Prefix/Suffix
         if options.prefix and options.prefix ~= "" then
             generatedName = options.prefix .. generatedName

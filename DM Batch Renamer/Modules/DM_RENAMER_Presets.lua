@@ -26,6 +26,8 @@ function Presets.save(name, state)
         transformCase = state.transformCase,
         prefix = state.prefix,
         suffix = state.suffix,
+        removeFromStart = state.removeFromStart,
+        removeFromEnd = state.removeFromEnd,
         incrementMode = state.incrementMode,
         incrementPadding = state.incrementPadding,
         autoSelectChanged = state.autoSelectChanged,
