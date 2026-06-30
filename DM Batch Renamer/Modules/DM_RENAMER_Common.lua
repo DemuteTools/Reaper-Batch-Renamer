@@ -379,6 +379,18 @@ function Common.removeSuffix(str, suffix)
     return str
 end
 
+-- Remove a fixed number of characters from the start and/or end of a string.
+-- fromStart/fromEnd: char counts (coerced, floored, clamped to >= 0). Byte-based slicing,
+-- consistent with truncate/removePrefix. Returns "" if the removals cover the whole string.
+function Common.removeChars(str, fromStart, fromEnd)
+    if not str then return str end
+    fromStart = math.max(0, math.floor(tonumber(fromStart) or 0))
+    fromEnd = math.max(0, math.floor(tonumber(fromEnd) or 0))
+    if fromStart == 0 and fromEnd == 0 then return str end
+    if fromStart + fromEnd >= #str then return "" end
+    return str:sub(fromStart + 1, #str - fromEnd)
+end
+
 -- Truncate string to max length
 function Common.truncate(str, maxLength, addEllipsis)
     if not str or #str <= maxLength then return str end

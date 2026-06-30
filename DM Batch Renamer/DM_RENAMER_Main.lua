@@ -169,6 +169,8 @@ local state = {
     templateString = "",
     prefix = "",
     suffix = "",
+    removeFromStart = 0,  -- chars to strip from the start of the name (before prefix/suffix)
+    removeFromEnd = 0,    -- chars to strip from the end of the name (before prefix/suffix)
     addNumbering = false,
     startNumber = 1,
     increment = 1,
@@ -643,6 +645,8 @@ local function updatePreview()
                     transformCase = state.transformCase,
                     prefix = state.prefix,
                     suffix = state.suffix,
+                    removeFromStart = state.removeFromStart,
+                    removeFromEnd = state.removeFromEnd,
                     spaceReplacement = state.spaceReplacement
                 })
             elseif state.currentTab == "All" then
@@ -657,6 +661,8 @@ local function updatePreview()
                     templateString = state.templateString,
                     prefix = state.prefix,
                     suffix = state.suffix,
+                    removeFromStart = state.removeFromStart,
+                    removeFromEnd = state.removeFromEnd,
                     addNumbering = state.addNumbering,
                     startNumber = state.startNumber,
                     increment = state.increment,
@@ -688,6 +694,8 @@ local function updatePreview()
                     templateString = state.templateString,
                     prefix = state.prefix,
                     suffix = state.suffix,
+                    removeFromStart = state.removeFromStart,
+                    removeFromEnd = state.removeFromEnd,
                     addNumbering = state.addNumbering,
                     startNumber = state.startNumber,
                     increment = state.increment,
@@ -1284,6 +1292,8 @@ local function loop()
                             state.replaceText = ""
                             state.prefix = ""
                             state.suffix = ""
+                            state.removeFromStart = 0
+                            state.removeFromEnd = 0
                             state.operation = "none"
                             state.transformCase = "none"
                             state.caseSensitive = false
@@ -1686,7 +1696,41 @@ local function loop()
                 state.suffix = newSuffix
                 state.needsPreview = true
             end
-            
+
+            reaper.ImGui_Separator(ctx)
+
+            -- Truncate from: remove N chars from start/end of the name (applied before prefix/suffix)
+            reaper.ImGui_Text(ctx, "Truncate from:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            reaper.ImGui_Text(ctx, "Start:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetNextItemWidth(ctx, 70)
+            local changedTrimStart, newTrimStart = reaper.ImGui_InputInt(ctx, "##truncStart", state.removeFromStart)
+            if changedTrimStart then
+                state.removeFromStart = math.max(0, math.floor(newTrimStart))
+                state.needsPreview = true
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Remove this many characters from the start/end of the name (before prefix/suffix). 0 = off.")
+                reaper.ImGui_EndTooltip(ctx)
+            end
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_Text(ctx, "End:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetNextItemWidth(ctx, 70)
+            local changedTrimEnd, newTrimEnd = reaper.ImGui_InputInt(ctx, "##truncEnd", state.removeFromEnd)
+            if changedTrimEnd then
+                state.removeFromEnd = math.max(0, math.floor(newTrimEnd))
+                state.needsPreview = true
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Remove this many characters from the start/end of the name (before prefix/suffix). 0 = off.")
+                reaper.ImGui_EndTooltip(ctx)
+            end
+
             reaper.ImGui_Separator(ctx)
             
             -- Pattern dropdown (hidden - Lua patterns disabled for now)
