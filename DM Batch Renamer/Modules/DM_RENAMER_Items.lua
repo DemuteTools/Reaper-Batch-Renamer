@@ -280,7 +280,7 @@ function Items.applyItemRename(items, changes)
     local errors = {}
     
     for _, itemData in ipairs(items) do
-        if itemData.checked and itemData.changed and itemData.preview then
+        if itemData.checked and itemData.changed and itemData.preview and itemData.preview ~= "" then
             if itemData.take then
                 -- Rename take
                 local success = reaper.GetSetMediaItemTakeInfo_String(

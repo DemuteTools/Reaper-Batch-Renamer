@@ -261,7 +261,7 @@ function Tracks.applyTrackRename(tracks, changes)
     local errors = {}
     
     for _, trackData in ipairs(tracks) do
-        if trackData.checked and trackData.changed and trackData.preview then
+        if trackData.checked and trackData.changed and trackData.preview and trackData.preview ~= "" then
             local success = reaper.GetSetMediaTrackInfo_String(
                 trackData.track,
                 "P_NAME",

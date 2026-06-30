@@ -169,10 +169,10 @@ function All.updatePreview(list, findText, replaceText, options)
         Tracks.updatePreview(itemsByType["Track"], findText, replaceText, options)
     end
 
-    -- Apply increment mode if not "off"
-    if options.incrementMode and options.incrementMode ~= "off" then
-        Common.handleDuplicateNames(list, options.incrementMode, nil, options.incrementPadding)
-    end
+    -- Note: each sub-module already disambiguates duplicates within its own type above.
+    -- Do NOT re-run handleDuplicateNames on the merged list here — it would double-suffix names
+    -- that are duplicated within more than one type (e.g. "foo_01" -> "foo_01_01"). Numbering
+    -- stays per-type, consistent with each individual tab.
 end
 
 function All.applyChanges(list)

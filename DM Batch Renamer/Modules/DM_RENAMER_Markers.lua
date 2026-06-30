@@ -261,7 +261,7 @@ function Markers.applyMarkerRename(markers, changes)
     local errors = {}
     
     for _, markerData in ipairs(markers) do
-        if markerData.checked and markerData.changed and markerData.preview then
+        if markerData.checked and markerData.changed and markerData.preview and markerData.preview ~= "" then
             -- Set marker name
             local success = reaper.SetProjectMarker3(
                 0,
