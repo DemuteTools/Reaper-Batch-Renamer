@@ -267,11 +267,18 @@ function Common.replacePattern(str, findPattern, replacePattern, caseSensitive, 
         -- For case-insensitive plain text replacement
         local lowerStr = str:lower()
         local lowerFind = findPattern:lower()
+        local searchPattern = Common.escapePattern(lowerFind)
+        -- Honour whole-word matching in case-insensitive mode too
+        -- (previously only applied in the case-sensitive branch, so "Whole Word"
+        -- silently did nothing unless "Case Sensitive" was also enabled)
+        if wholeWord then
+            searchPattern = "%f[%w]" .. searchPattern .. "%f[%W]"
+        end
         local result = str
         local offset = 0
-        
+
         while true do
-            local startPos, endPos = string.find(lowerStr, Common.escapePattern(lowerFind), offset + 1, false)
+            local startPos, endPos = string.find(lowerStr, searchPattern, offset + 1, false)
             if not startPos then break end
             
             result = result:sub(1, startPos - 1) .. replacePattern .. result:sub(endPos + 1)

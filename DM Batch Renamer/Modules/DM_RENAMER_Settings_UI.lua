@@ -125,6 +125,21 @@ local function showGeneralSettings()
         "The Folder Items tab is for NVK/RenderBlock workflows using empty items as naming containers.")
 
     reaper.ImGui_Separator(ctx)
+
+    -- Behavior
+    reaper.ImGui_TextColored(ctx, 0xFFAA00FF, "Behavior")
+    reaper.ImGui_Separator(ctx)
+
+    local jumpOn = (Settings.current.jumpToPosition ~= false)  -- default on
+    local jumpRv, newJump = reaper.ImGui_Checkbox(ctx, "Jump to position on select", jumpOn)
+    if jumpRv then
+        Settings.current.jumpToPosition = newJump
+        Settings.save()
+    end
+    reaper.ImGui_TextColored(ctx, 0xAAAA00FF,
+        "Move the timeline view to the selected item's position when you click a row.")
+
+    reaper.ImGui_Separator(ctx)
 end
 
 -- Show appearance settings section
