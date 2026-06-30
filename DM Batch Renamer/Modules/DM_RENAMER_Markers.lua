@@ -801,7 +801,7 @@ function Markers.updatePreview(markerList, findText, replaceText, options)
 
     -- Apply increment mode if not "off"
     if options.incrementMode and options.incrementMode ~= "off" then
-        Common.handleDuplicateNames(markerList, options.incrementMode)
+        Common.handleDuplicateNames(markerList, options.incrementMode, nil, options.incrementPadding)
     end
 end
 

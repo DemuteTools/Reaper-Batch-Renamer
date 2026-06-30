@@ -171,7 +171,7 @@ function All.updatePreview(list, findText, replaceText, options)
 
     -- Apply increment mode if not "off"
     if options.incrementMode and options.incrementMode ~= "off" then
-        Common.handleDuplicateNames(list, options.incrementMode)
+        Common.handleDuplicateNames(list, options.incrementMode, nil, options.incrementPadding)
     end
 end
 

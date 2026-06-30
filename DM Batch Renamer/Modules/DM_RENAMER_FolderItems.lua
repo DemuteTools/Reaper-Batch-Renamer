@@ -484,7 +484,7 @@ function FolderItems.updatePreview(itemList, pattern, options)
 
     -- Apply increment mode for duplicates (unified via Common)
     if options.incrementMode and options.incrementMode ~= "off" then
-        Common.handleDuplicateNames(itemList, options.incrementMode, options.separator)
+        Common.handleDuplicateNames(itemList, options.incrementMode, options.separator, options.incrementPadding)
     end
 end
 

@@ -694,7 +694,7 @@ function Tracks.updatePreview(trackList, findText, replaceText, options)
 
     -- Apply increment mode for duplicates
     if options.incrementMode and options.incrementMode ~= "off" then
-        Common.handleDuplicateNames(trackList, options.incrementMode)
+        Common.handleDuplicateNames(trackList, options.incrementMode, nil, options.incrementPadding)
     end
 end
 

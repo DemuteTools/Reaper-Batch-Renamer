@@ -755,7 +755,7 @@ function Regions.updatePreview(regionList, findText, replaceText, options)
 
     -- Apply increment mode if not "off"
     if options.incrementMode and options.incrementMode ~= "off" then
-        Common.handleDuplicateNames(regionList, options.incrementMode)
+        Common.handleDuplicateNames(regionList, options.incrementMode, nil, options.incrementPadding)
     end
 end
 

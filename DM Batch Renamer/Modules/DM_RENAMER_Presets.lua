@@ -27,6 +27,7 @@ function Presets.save(name, state)
         prefix = state.prefix,
         suffix = state.suffix,
         incrementMode = state.incrementMode,
+        incrementPadding = state.incrementPadding,
         autoSelectChanged = state.autoSelectChanged,
         jumpToPosition = state.jumpToPosition,
         -- Add folder items specific settings
