@@ -311,6 +311,55 @@ local function saveFolderItemsSettings()
     Settings.save()
 end
 
+-- Reset every rename/transform control back to its default (the default-open state).
+-- Does NOT touch global settings (exclude tags, jump-to-position, appearance), the current
+-- selection, the active tab, or the REAPER project — no rename is applied.
+local function resetTransformControls()
+    -- Search
+    state.findText = ""
+    state.replaceText = ""
+    state.caseSensitive = false
+    state.wholeWord = false
+    state.useLuaPatterns = false
+    state.selectedPattern = nil
+    state.patternValid = true
+    state.patternError = ""
+    state.testPatternText = ""
+    -- Clean up
+    state.operation = "none"
+    state.spaceReplacement = ""
+    state.removeFromStart = 0
+    state.removeFromEnd = 0
+    -- Add & format
+    state.prefix = ""
+    state.suffix = ""
+    state.transformCase = "none"
+    state.useTemplate = false
+    state.templateString = ""
+    -- Numbering (increment suffix + legacy add-numbering)
+    state.incrementMode = "number"
+    state.incrementPadding = 2
+    state.addNumbering = false
+    state.startNumber = 1
+    state.increment = 1
+    state.padding = 2
+    state.numberPosition = "suffix"
+    state.numberSeparator = "_"
+    state.maxLength = 0
+    state.addEllipsis = false
+    -- Folder Items tab controls
+    state.folderItemPattern = "hierarchical"
+    state.folderItemSeparator = "_"
+    state.folderItemCustomPattern = "$region1_$track1"
+    state.folderItemIncrementMode = "number"
+    -- Clear preset association and persist the settings-backed mirrors
+    state.selectedPreset = nil
+    Settings.current.lastPreset = nil
+    Settings.current.spaceReplacement = state.spaceReplacement
+    saveFolderItemsSettings()  -- mirrors folderItem* into Settings and calls Settings.save()
+    state.needsPreview = true
+end
+
 -- Refresh current list
 local function refreshCurrentList()
     
@@ -1276,7 +1325,7 @@ local function loop()
             reaper.ImGui_Text(ctx, "Load Preset:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, leftColumnWidth - controlPosX - 15)
+            reaper.ImGui_SetNextItemWidth(ctx, leftColumnWidth - controlPosX - 75)
 
             local presetNames = Presets.list()
             table.insert(presetNames, 1, "-- None --")
@@ -1303,33 +1352,23 @@ local function loop()
                                 Settings.save()
                             end
                         else
-                            state.selectedPreset = nil
-                            -- Reset all preset fields to defaults
-                            state.findText = ""
-                            state.replaceText = ""
-                            state.prefix = ""
-                            state.suffix = ""
-                            state.removeFromStart = 0
-                            state.removeFromEnd = 0
-                            state.operation = "none"
-                            state.transformCase = "none"
-                            state.caseSensitive = false
-                            state.wholeWord = false
-                            state.useLuaPatterns = false
-                            state.selectedPattern = nil
-                            state.patternValid = true
-                            state.patternError = ""
-                            state.spaceReplacement = ""
-                            state.folderItemPattern = "hierarchical"
-                            state.needsPreview = true
-                            -- Clear last used preset and sync settings
-                            Settings.current.lastPreset = nil
-                            Settings.current.spaceReplacement = state.spaceReplacement
-                            Settings.save()
+                            -- "-- None --" selected: same as the Reset button
+                            resetTransformControls()
                         end
                     end
                 end
                 reaper.ImGui_EndCombo(ctx)
+            end
+
+            -- Reset button: clear all renaming fields back to defaults
+            reaper.ImGui_SameLine(ctx)
+            if reaper.ImGui_Button(ctx, "Reset") then
+                resetTransformControls()
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Clear all renaming fields back to defaults")
+                reaper.ImGui_EndTooltip(ctx)
             end
 
             -- Save preset
