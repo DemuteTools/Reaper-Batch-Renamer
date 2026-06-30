@@ -834,7 +834,9 @@ end
 
 -- Jump to selected item position
 local function jumpToItemPosition(index)
-    if not state.jumpToPosition then return end
+    -- Source of truth is the global Settings pref (edited in Settings window > General).
+    -- Default on: only skip when explicitly disabled.
+    if Settings.current.jumpToPosition == false then return end
     
     local item = state.currentList[index]
     if not item then return end
@@ -1228,13 +1230,6 @@ local function loop()
             if reaper.ImGui_BeginMenu(ctx, "Settings") then
                 if reaper.ImGui_MenuItem(ctx, "Appearance Settings...", "Ctrl+,") then
                     state.showSettingsWindow = true
-                end
-                -- Checkable item rendered via the label (works across all ReaImGui versions)
-                local jumpLabel = (state.jumpToPosition and "[x]" or "[  ]") .. " Jump to position on select"
-                if reaper.ImGui_MenuItem(ctx, jumpLabel) then
-                    state.jumpToPosition = not state.jumpToPosition
-                    Settings.current.jumpToPosition = state.jumpToPosition
-                    Settings.save()
                 end
                 reaper.ImGui_Separator(ctx)
                 if reaper.ImGui_MenuItem(ctx, "Reset to Defaults") then
