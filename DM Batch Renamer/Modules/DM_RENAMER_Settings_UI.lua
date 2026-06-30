@@ -121,6 +121,13 @@ local function showGeneralSettings()
         Settings.setFolderItemUser(newShowTab)
     end
 
+    local showContext = (Settings.current.showFolderItemContext ~= false)  -- default on
+    local ctxRv, newShowContext = reaper.ImGui_Checkbox(ctx, "Show context column", showContext)
+    if ctxRv then
+        Settings.current.showFolderItemContext = newShowContext
+        Settings.save()
+    end
+
     reaper.ImGui_TextColored(ctx, 0xAAAA00FF,
         "The Folder Items tab is for NVK/RenderBlock workflows using empty items as naming containers.")
 
