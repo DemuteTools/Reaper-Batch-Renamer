@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<index version="1" name="DM Batch Renamer" commit="ffbbf4e83ea11596ebb7a05875ba06b925705a2c">
+<index version="1" name="DM Batch Renamer" commit="d42c986fb1418641ee8b048d97fbc9f0221afe20">
   <category name="DM Batch Renamer">
     <reapack name="DM_RENAMER_Main.lua" type="script" desc="DM Renamer - Batch Renaming Tool">
       <metadata>
@@ -225,6 +225,111 @@ Website, Discord and GitHub icons in footer next to version number]]></changelog
         <source file="Icons/android-icon-24x24.png">https://github.com/DemuteStudio/Reaper-Batch-Renamer/raw/ffbbf4e83ea11596ebb7a05875ba06b925705a2c/DM%20Batch%20Renamer/Icons/android-icon-24x24.png</source>
         <source file="Icons/Discord-Symbol-Blurple.png">https://github.com/DemuteStudio/Reaper-Batch-Renamer/raw/ffbbf4e83ea11596ebb7a05875ba06b925705a2c/DM%20Batch%20Renamer/Icons/Discord-Symbol-Blurple.png</source>
         <source file="Icons/Documentation_Logo_W.png">https://github.com/DemuteStudio/Reaper-Batch-Renamer/raw/ffbbf4e83ea11596ebb7a05875ba06b925705a2c/DM%20Batch%20Renamer/Icons/Documentation_Logo_W.png</source>
+      </version>
+      <version name="0.8.0-beta" author="Anthony Deneyer" time="2026-06-30T13:23:19Z">
+        <changelog><![CDATA[Configurable digit padding for the increment suffix (new Digits field)
+New "Truncate from" control: remove N characters from the start/end of names]]></changelog>
+        <source main="main">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/DM_RENAMER_Main.lua</source>
+        <source file="Modules/DM_RENAMER_Common.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_Common.lua</source>
+        <source file="Modules/DM_RENAMER_Items.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_Items.lua</source>
+        <source file="Modules/DM_RENAMER_Tracks.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_Tracks.lua</source>
+        <source file="Modules/DM_RENAMER_Regions.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_Regions.lua</source>
+        <source file="Modules/DM_RENAMER_Markers.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_Markers.lua</source>
+        <source file="Modules/DM_RENAMER_FolderItems.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_FolderItems.lua</source>
+        <source file="Modules/DM_RENAMER_All.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_All.lua</source>
+        <source file="Modules/DM_RENAMER_Settings.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings.lua</source>
+        <source file="Modules/DM_RENAMER_Settings_UI.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings_UI.lua</source>
+        <source file="Modules/DM_RENAMER_Presets.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_Presets.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_TrackRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_TrackRegionMarkerSelection.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_ClearRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Modules/DM_RENAMER_ClearRegionMarkerSelection.lua</source>
+        <source file="Icons/DEMUTE-logoW.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Icons/DEMUTE-logoW.png</source>
+        <source file="Icons/android-icon-24x24.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Icons/android-icon-24x24.png</source>
+        <source file="Icons/Discord-Symbol-Blurple.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Icons/Discord-Symbol-Blurple.png</source>
+        <source file="Icons/Documentation_Logo_W.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9c12031ed2059841116fa89fa0b2974284f378e2/DM%20Batch%20Renamer/Icons/Documentation_Logo_W.png</source>
+      </version>
+      <version name="0.9.0-beta" author="Anthony Deneyer" time="2026-06-30T15:44:27Z">
+        <changelog><![CDATA[Regrouped the left-column controls by family for clarity
+Truncate now acts on the source name and sits above Find/Replace
+Moved "Jump to position on select" into Settings > General
+Fix: "Whole Word" now works without also enabling "Case Sensitive"]]></changelog>
+        <source main="main">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/DM_RENAMER_Main.lua</source>
+        <source file="Modules/DM_RENAMER_Common.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_Common.lua</source>
+        <source file="Modules/DM_RENAMER_Items.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_Items.lua</source>
+        <source file="Modules/DM_RENAMER_Tracks.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_Tracks.lua</source>
+        <source file="Modules/DM_RENAMER_Regions.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_Regions.lua</source>
+        <source file="Modules/DM_RENAMER_Markers.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_Markers.lua</source>
+        <source file="Modules/DM_RENAMER_FolderItems.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_FolderItems.lua</source>
+        <source file="Modules/DM_RENAMER_All.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_All.lua</source>
+        <source file="Modules/DM_RENAMER_Settings.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings.lua</source>
+        <source file="Modules/DM_RENAMER_Settings_UI.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings_UI.lua</source>
+        <source file="Modules/DM_RENAMER_Presets.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_Presets.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_TrackRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_TrackRegionMarkerSelection.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_ClearRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Modules/DM_RENAMER_ClearRegionMarkerSelection.lua</source>
+        <source file="Icons/DEMUTE-logoW.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Icons/DEMUTE-logoW.png</source>
+        <source file="Icons/android-icon-24x24.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Icons/android-icon-24x24.png</source>
+        <source file="Icons/Discord-Symbol-Blurple.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Icons/Discord-Symbol-Blurple.png</source>
+        <source file="Icons/Documentation_Logo_W.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/456a3967bda88b04e2f4d691554f07ba097549cb/DM%20Batch%20Renamer/Icons/Documentation_Logo_W.png</source>
+      </version>
+      <version name="0.10.0-beta" author="Anthony Deneyer" time="2026-06-30T16:49:39Z">
+        <changelog><![CDATA[New Reset button (next to Apply Changes) to clear all renaming fields to defaults]]></changelog>
+        <source main="main">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/DM_RENAMER_Main.lua</source>
+        <source file="Modules/DM_RENAMER_Common.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_Common.lua</source>
+        <source file="Modules/DM_RENAMER_Items.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_Items.lua</source>
+        <source file="Modules/DM_RENAMER_Tracks.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_Tracks.lua</source>
+        <source file="Modules/DM_RENAMER_Regions.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_Regions.lua</source>
+        <source file="Modules/DM_RENAMER_Markers.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_Markers.lua</source>
+        <source file="Modules/DM_RENAMER_FolderItems.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_FolderItems.lua</source>
+        <source file="Modules/DM_RENAMER_All.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_All.lua</source>
+        <source file="Modules/DM_RENAMER_Settings.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings.lua</source>
+        <source file="Modules/DM_RENAMER_Settings_UI.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings_UI.lua</source>
+        <source file="Modules/DM_RENAMER_Presets.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_Presets.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_TrackRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_TrackRegionMarkerSelection.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_ClearRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Modules/DM_RENAMER_ClearRegionMarkerSelection.lua</source>
+        <source file="Icons/DEMUTE-logoW.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Icons/DEMUTE-logoW.png</source>
+        <source file="Icons/android-icon-24x24.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Icons/android-icon-24x24.png</source>
+        <source file="Icons/Discord-Symbol-Blurple.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Icons/Discord-Symbol-Blurple.png</source>
+        <source file="Icons/Documentation_Logo_W.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/20f192b14a4363021955f102f6d166af71afcd70/DM%20Batch%20Renamer/Icons/Documentation_Logo_W.png</source>
+      </version>
+      <version name="0.10.1-beta" author="Anthony Deneyer" time="2026-06-30T17:18:18Z">
+        <changelog><![CDATA[Fix: the All tab no longer double-suffixes names duplicated across multiple types
+Fix: empty results are no longer committed (names are never silently blanked)]]></changelog>
+        <source main="main">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/DM_RENAMER_Main.lua</source>
+        <source file="Modules/DM_RENAMER_Common.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_Common.lua</source>
+        <source file="Modules/DM_RENAMER_Items.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_Items.lua</source>
+        <source file="Modules/DM_RENAMER_Tracks.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_Tracks.lua</source>
+        <source file="Modules/DM_RENAMER_Regions.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_Regions.lua</source>
+        <source file="Modules/DM_RENAMER_Markers.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_Markers.lua</source>
+        <source file="Modules/DM_RENAMER_FolderItems.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_FolderItems.lua</source>
+        <source file="Modules/DM_RENAMER_All.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_All.lua</source>
+        <source file="Modules/DM_RENAMER_Settings.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings.lua</source>
+        <source file="Modules/DM_RENAMER_Settings_UI.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings_UI.lua</source>
+        <source file="Modules/DM_RENAMER_Presets.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_Presets.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_TrackRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_TrackRegionMarkerSelection.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_ClearRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Modules/DM_RENAMER_ClearRegionMarkerSelection.lua</source>
+        <source file="Icons/DEMUTE-logoW.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Icons/DEMUTE-logoW.png</source>
+        <source file="Icons/android-icon-24x24.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Icons/android-icon-24x24.png</source>
+        <source file="Icons/Discord-Symbol-Blurple.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Icons/Discord-Symbol-Blurple.png</source>
+        <source file="Icons/Documentation_Logo_W.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/9cd671ca2b988095eb4549f74fd6abcdad844c63/DM%20Batch%20Renamer/Icons/Documentation_Logo_W.png</source>
+      </version>
+      <version name="0.11.0-beta" author="Anthony Deneyer" time="2026-06-30T17:54:15Z">
+        <changelog><![CDATA[New option to show/hide the Folder Items "Context" column (Settings > General)]]></changelog>
+        <source main="main">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/DM_RENAMER_Main.lua</source>
+        <source file="Modules/DM_RENAMER_Common.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_Common.lua</source>
+        <source file="Modules/DM_RENAMER_Items.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_Items.lua</source>
+        <source file="Modules/DM_RENAMER_Tracks.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_Tracks.lua</source>
+        <source file="Modules/DM_RENAMER_Regions.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_Regions.lua</source>
+        <source file="Modules/DM_RENAMER_Markers.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_Markers.lua</source>
+        <source file="Modules/DM_RENAMER_FolderItems.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_FolderItems.lua</source>
+        <source file="Modules/DM_RENAMER_All.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_All.lua</source>
+        <source file="Modules/DM_RENAMER_Settings.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings.lua</source>
+        <source file="Modules/DM_RENAMER_Settings_UI.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_Settings_UI.lua</source>
+        <source file="Modules/DM_RENAMER_Presets.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_Presets.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_TrackRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_TrackRegionMarkerSelection.lua</source>
+        <source main="main" file="Modules/DM_RENAMER_ClearRegionMarkerSelection.lua">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Modules/DM_RENAMER_ClearRegionMarkerSelection.lua</source>
+        <source file="Icons/DEMUTE-logoW.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Icons/DEMUTE-logoW.png</source>
+        <source file="Icons/android-icon-24x24.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Icons/android-icon-24x24.png</source>
+        <source file="Icons/Discord-Symbol-Blurple.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Icons/Discord-Symbol-Blurple.png</source>
+        <source file="Icons/Documentation_Logo_W.png">https://github.com/DemuteTools/Reaper-Batch-Renamer/raw/d42c986fb1418641ee8b048d97fbc9f0221afe20/DM%20Batch%20Renamer/Icons/Documentation_Logo_W.png</source>
       </version>
     </reapack>
   </category>
