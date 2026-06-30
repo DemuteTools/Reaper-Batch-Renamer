@@ -1,8 +1,9 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.10.0-beta
+-- @version 0.10.1-beta
 -- @changelog
---   New Reset button (next to Apply Changes) to clear all renaming fields to defaults
+--   Fix: the All tab no longer double-suffixes names duplicated across multiple types
+--   Fix: empty results are no longer committed (names are never silently blanked)
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -43,7 +44,7 @@
 --   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
 --   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
-local DM_RENAMER_VERSION = "0.10.0-beta"
+local DM_RENAMER_VERSION = "0.10.1-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
