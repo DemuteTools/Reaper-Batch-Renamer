@@ -1325,7 +1325,7 @@ local function loop()
             reaper.ImGui_Text(ctx, "Load Preset:")
             reaper.ImGui_SameLine(ctx)
             reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_SetNextItemWidth(ctx, leftColumnWidth - controlPosX - 75)
+            reaper.ImGui_SetNextItemWidth(ctx, leftColumnWidth - controlPosX - 15)
 
             local presetNames = Presets.list()
             table.insert(presetNames, 1, "-- None --")
@@ -1358,17 +1358,6 @@ local function loop()
                     end
                 end
                 reaper.ImGui_EndCombo(ctx)
-            end
-
-            -- Reset button: clear all renaming fields back to defaults
-            reaper.ImGui_SameLine(ctx)
-            if reaper.ImGui_Button(ctx, "Reset") then
-                resetTransformControls()
-            end
-            if reaper.ImGui_IsItemHovered(ctx) then
-                reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Clear all renaming fields back to defaults")
-                reaper.ImGui_EndTooltip(ctx)
             end
 
             -- Save preset
@@ -2472,6 +2461,15 @@ local function loop()
         -- Button and warning on same line
         if reaper.ImGui_Button(ctx, "Apply Changes") then
             applyChanges()
+        end
+        reaper.ImGui_SameLine(ctx)
+        if reaper.ImGui_Button(ctx, "Reset") then
+            resetTransformControls()
+        end
+        if reaper.ImGui_IsItemHovered(ctx) then
+            reaper.ImGui_BeginTooltip(ctx)
+            reaper.ImGui_Text(ctx, "Clear all renaming fields back to defaults")
+            reaper.ImGui_EndTooltip(ctx)
         end
       end
 
