@@ -319,7 +319,7 @@ function Regions.applyRegionRename(regions, changes)
     local errors = {}
     
     for _, regionData in ipairs(regions) do
-        if regionData.checked and regionData.changed and regionData.preview then
+        if regionData.checked and regionData.changed and regionData.preview and regionData.preview ~= "" then
             -- Set region name
             local success = reaper.SetProjectMarker3(
                 0,

@@ -477,20 +477,24 @@ function FolderItems.updatePreview(itemList, pattern, options)
             generatedName = Common.applyCase(generatedName, options.transformCase)
         end
 
-        item.preview = generatedName
-
-        -- Ensure preview is never empty
-        if item.preview == "" or item.preview == nil then
-            item.preview = "(empty)"
-        end
-
-        -- Changed if different from displayed name (consistent with other modules)
-        item.changed = (item.preview ~= item.name)
+        item.preview = generatedName or ""
+        -- Keep the REAL (possibly empty) name through the duplicate pass below; the empty
+        -- placeholder is applied afterwards so empty names are never grouped/suffixed or committed.
+        item.changed = (item.preview ~= "" and item.preview ~= item.name)
     end
 
-    -- Apply increment mode for duplicates (unified via Common)
+    -- Apply increment mode for duplicates (unified via Common). handleDuplicateNames skips
+    -- empty previews, so empty folder items are left untouched here.
     if options.incrementMode and options.incrementMode ~= "off" then
         Common.handleDuplicateNames(itemList, options.incrementMode, options.separator, options.incrementPadding)
+    end
+
+    -- Empty generated names: show a placeholder for display but never commit them.
+    for _, item in ipairs(itemList) do
+        if item.preview == "" then
+            item.preview = "(empty)"
+            item.changed = false
+        end
     end
 end
 
