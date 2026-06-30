@@ -1229,16 +1229,12 @@ local function loop()
                 if reaper.ImGui_MenuItem(ctx, "Appearance Settings...", "Ctrl+,") then
                     state.showSettingsWindow = true
                 end
-                local jumpClicked, jumpVal = reaper.ImGui_MenuItem(ctx, "Jump to position on select", nil, state.jumpToPosition)
-                if jumpClicked then
-                    state.jumpToPosition = jumpVal
+                -- Checkable item rendered via the label (works across all ReaImGui versions)
+                local jumpLabel = (state.jumpToPosition and "[x]" or "[  ]") .. " Jump to position on select"
+                if reaper.ImGui_MenuItem(ctx, jumpLabel) then
+                    state.jumpToPosition = not state.jumpToPosition
                     Settings.current.jumpToPosition = state.jumpToPosition
                     Settings.save()
-                end
-                if reaper.ImGui_IsItemHovered(ctx) then
-                    reaper.ImGui_BeginTooltip(ctx)
-                    reaper.ImGui_Text(ctx, "Move view to selected item position in timeline")
-                    reaper.ImGui_EndTooltip(ctx)
                 end
                 reaper.ImGui_Separator(ctx)
                 if reaper.ImGui_MenuItem(ctx, "Reset to Defaults") then
