@@ -1890,11 +1890,14 @@ local function loop()
                 reaper.ImGui_EndTooltip(ctx)
             end
 
-            -- Digit count for the number increment suffix (only relevant in "number" mode)
+            -- Digit count for the number increment suffix, on its own row below the radios
+            -- (only relevant in "number" mode)
             if currentIncrementMode == "number" then
+                reaper.ImGui_Text(ctx, "Digits:")
                 reaper.ImGui_SameLine(ctx)
+                reaper.ImGui_SetCursorPosX(ctx, controlPosX)
                 reaper.ImGui_SetNextItemWidth(ctx, 90)
-                local padChanged, newPad = reaper.ImGui_InputInt(ctx, "Digits", state.incrementPadding)
+                local padChanged, newPad = reaper.ImGui_InputInt(ctx, "##incPadding", state.incrementPadding)
                 if padChanged then
                     state.incrementPadding = math.max(1, math.min(6, math.floor(newPad)))
                     state.needsPreview = true
