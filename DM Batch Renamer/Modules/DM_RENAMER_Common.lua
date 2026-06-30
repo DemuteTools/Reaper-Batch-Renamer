@@ -470,9 +470,11 @@ end
 -- Handle duplicate names with auto-increment
 -- incrementMode: "off", "number", or "letter"
 -- separator: optional separator before suffix (default "_")
-function Common.handleDuplicateNames(list, incrementMode, separator)
+-- padding: digit count for "number" mode (default 2, clamped to >= 1; never truncates)
+function Common.handleDuplicateNames(list, incrementMode, separator, padding)
     if not incrementMode or incrementMode == "off" then return end
     separator = separator or "_"
+    padding = math.max(1, math.floor(tonumber(padding) or 2))
 
     -- Group items by preview name (include ALL items, not just changed ones,
     -- so increment-only usage works without requiring other transformations)
@@ -510,7 +512,7 @@ function Common.handleDuplicateNames(list, incrementMode, separator)
                 if incrementMode == "letter" then
                     suffix = Common.numberToLetters(i)
                 else  -- "number" mode (default)
-                    suffix = string.format("%02d", i)
+                    suffix = Common.padNumber(i, padding)
                 end
                 items[i].preview = name .. separator .. suffix
                 items[i].changed = (items[i].preview ~= items[i].name)

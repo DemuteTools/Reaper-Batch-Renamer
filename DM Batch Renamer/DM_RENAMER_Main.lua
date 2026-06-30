@@ -212,6 +212,8 @@ local state = {
     jumpToPosition = true,  -- Jump to selected item position (default: true)
     -- Increment mode for all tabs: "off", "number", "letter"
     incrementMode = "number",
+    -- Digit count for "number" increment suffix (shared by all tabs); default 2 = legacy _01/_02
+    incrementPadding = 2,
     -- Sorting state
     sortColumn = nil,
     sortDirection = "asc",
@@ -629,6 +631,7 @@ local function updatePreview()
                     separator = state.folderItemSeparator,
                     customPattern = state.folderItemCustomPattern,
                     incrementMode = state.folderItemIncrementMode,
+                    incrementPadding = state.incrementPadding,
                     excludeTag = state.excludeTags,
                     -- Add all transformation options for full pattern system
                     operation = state.operation,
@@ -663,6 +666,7 @@ local function updatePreview()
                     maxLength = state.maxLength,
                     addEllipsis = state.addEllipsis,
                     incrementMode = state.incrementMode,
+                    incrementPadding = state.incrementPadding,
                     -- Folder items options
                     folderItemPattern = state.folderItemPattern,
                     separator = state.folderItemSeparator,
@@ -693,6 +697,7 @@ local function updatePreview()
                     maxLength = state.maxLength,
                     addEllipsis = state.addEllipsis,
                     incrementMode = state.incrementMode,
+                    incrementPadding = state.incrementPadding,
                     spaceReplacement = state.spaceReplacement
                 })
             end
@@ -1881,8 +1886,24 @@ local function loop()
             end
             if reaper.ImGui_IsItemHovered(ctx) then
                 reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Add suffix to duplicates: Off, Number (01, 02...), Letter (A, B... Z, AA...)")
+                reaper.ImGui_Text(ctx, "Add suffix to duplicates: Off, Number (01, 02...), Letter (A, B... Z, AA...). Digits sets the number width.")
                 reaper.ImGui_EndTooltip(ctx)
+            end
+
+            -- Digit count for the number increment suffix (only relevant in "number" mode)
+            if currentIncrementMode == "number" then
+                reaper.ImGui_SameLine(ctx)
+                reaper.ImGui_SetNextItemWidth(ctx, 90)
+                local padChanged, newPad = reaper.ImGui_InputInt(ctx, "Digits", state.incrementPadding)
+                if padChanged then
+                    state.incrementPadding = math.max(1, math.min(6, math.floor(newPad)))
+                    state.needsPreview = true
+                end
+                if reaper.ImGui_IsItemHovered(ctx) then
+                    reaper.ImGui_BeginTooltip(ctx)
+                    reaper.ImGui_Text(ctx, "Digits in the increment suffix (1-6). E.g. 2 -> _01, 3 -> _001")
+                    reaper.ImGui_EndTooltip(ctx)
+                end
             end
 
             reaper.ImGui_Separator(ctx)
