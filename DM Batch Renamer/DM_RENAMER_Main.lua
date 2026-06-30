@@ -2072,9 +2072,14 @@ local function loop()
                                reaper.ImGui_TableFlags_SizingStretchSame()
             
             -- Adapt columns for different tabs
+            local showFolderContext = Settings.current.showFolderItemContext ~= false
+            -- If the Context column is hidden but the sort still points at it, reset the sort
+            if state.currentTab == "Folder Items" and not showFolderContext and state.sortColumn == 3 then
+                state.sortColumn = nil
+            end
             local columnCount = 3  -- Default
             if state.currentTab == "Folder Items" then
-                columnCount = 4
+                columnCount = showFolderContext and 4 or 3
             elseif state.currentTab == "All" then
                 columnCount = 5  -- Check, Type, Current, Target, Context
             end
@@ -2091,7 +2096,9 @@ local function loop()
                     reaper.ImGui_TableSetupColumn(ctx, "##Check", reaper.ImGui_TableColumnFlags_NoSort() | reaper.ImGui_TableColumnFlags_WidthFixed(), 30)
                     reaper.ImGui_TableSetupColumn(ctx, "Current Name", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
                     reaper.ImGui_TableSetupColumn(ctx, "Target Name", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
-                    reaper.ImGui_TableSetupColumn(ctx, "Context (Region/Track)", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
+                    if showFolderContext then
+                        reaper.ImGui_TableSetupColumn(ctx, "Context (Region/Track)", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
+                    end
                 else
                     reaper.ImGui_TableSetupColumn(ctx, "##Check", reaper.ImGui_TableColumnFlags_NoSort() | reaper.ImGui_TableColumnFlags_WidthFixed(), 30)
                     reaper.ImGui_TableSetupColumn(ctx, "Current Name", reaper.ImGui_TableColumnFlags_DefaultSort() | reaper.ImGui_TableColumnFlags_WidthStretch())
@@ -2388,7 +2395,7 @@ local function loop()
                     end
                     
                     -- Column 4 or 5: Context info
-                    if state.currentTab == "Folder Items" then
+                    if state.currentTab == "Folder Items" and showFolderContext then
                         reaper.ImGui_TableSetColumnIndex(ctx, 3)
                         reaper.ImGui_Text(ctx, item.contextInfo or "")
                     elseif state.currentTab == "All" then
