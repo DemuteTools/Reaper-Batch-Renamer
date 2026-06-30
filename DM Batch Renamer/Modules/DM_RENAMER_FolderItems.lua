@@ -424,6 +424,12 @@ function FolderItems.updatePreview(itemList, pattern, options)
     for i, item in ipairs(itemList) do
         local generatedName = FolderItems.generateName(item, pattern, options)
 
+        -- Priority 0: truncate the SOURCE first — the freshly generated name, before operation,
+        -- find/replace, space replacement or prefix/suffix.
+        if (options.removeFromStart and options.removeFromStart > 0) or (options.removeFromEnd and options.removeFromEnd > 0) then
+            generatedName = Common.removeChars(generatedName, options.removeFromStart, options.removeFromEnd)
+        end
+
         -- Apply additional transformations (for full pattern system)
         -- 1. Operations (pcall to gracefully handle per-item errors)
         if options.operation and options.operation ~= "none" then
@@ -456,11 +462,6 @@ function FolderItems.updatePreview(itemList, pattern, options)
             elseif options.spaceReplacement == "-" then
                 generatedName = generatedName:gsub("%s+", "-")
             end
-        end
-
-        -- 2.7. Remove characters from start/end (before prefix/suffix)
-        if (options.removeFromStart and options.removeFromStart > 0) or (options.removeFromEnd and options.removeFromEnd > 0) then
-            generatedName = Common.removeChars(generatedName, options.removeFromStart, options.removeFromEnd)
         end
 
         -- 3. Prefix/Suffix

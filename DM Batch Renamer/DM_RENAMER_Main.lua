@@ -1653,6 +1653,41 @@ local function loop()
             -- reaper.ImGui_Text(ctx, "TRANSFORMATIONS")
             -- reaper.ImGui_Separator(ctx)
             
+            -- Truncate from: remove N chars from the start/end of the SOURCE name first
+            -- (acts on the original name, before Find/Replace and every other tool)
+            reaper.ImGui_Text(ctx, "Truncate from:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
+            reaper.ImGui_Text(ctx, "Start:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetNextItemWidth(ctx, 70)
+            local changedTrimStart, newTrimStart = reaper.ImGui_InputInt(ctx, "##truncStart", state.removeFromStart)
+            if changedTrimStart then
+                state.removeFromStart = math.max(0, math.floor(newTrimStart))
+                state.needsPreview = true
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Remove this many characters from the start/end of the source name, before Find/Replace and all other tools. 0 = off.")
+                reaper.ImGui_EndTooltip(ctx)
+            end
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_Text(ctx, "End:")
+            reaper.ImGui_SameLine(ctx)
+            reaper.ImGui_SetNextItemWidth(ctx, 70)
+            local changedTrimEnd, newTrimEnd = reaper.ImGui_InputInt(ctx, "##truncEnd", state.removeFromEnd)
+            if changedTrimEnd then
+                state.removeFromEnd = math.max(0, math.floor(newTrimEnd))
+                state.needsPreview = true
+            end
+            if reaper.ImGui_IsItemHovered(ctx) then
+                reaper.ImGui_BeginTooltip(ctx)
+                reaper.ImGui_Text(ctx, "Remove this many characters from the start/end of the source name, before Find/Replace and all other tools. 0 = off.")
+                reaper.ImGui_EndTooltip(ctx)
+            end
+
+            reaper.ImGui_Separator(ctx)
+
             -- Find/Replace controls with pattern support
             reaper.ImGui_Text(ctx, "Find:")
             reaper.ImGui_SameLine(ctx)
@@ -1826,38 +1861,6 @@ local function loop()
             end
             if isActive_remove then
                 reaper.ImGui_PopStyleColor(ctx)
-            end
-
-            -- Truncate from: remove N chars from start/end of the name (applied before prefix/suffix)
-            reaper.ImGui_Text(ctx, "Truncate from:")
-            reaper.ImGui_SameLine(ctx)
-            reaper.ImGui_SetCursorPosX(ctx, controlPosX)
-            reaper.ImGui_Text(ctx, "Start:")
-            reaper.ImGui_SameLine(ctx)
-            reaper.ImGui_SetNextItemWidth(ctx, 70)
-            local changedTrimStart, newTrimStart = reaper.ImGui_InputInt(ctx, "##truncStart", state.removeFromStart)
-            if changedTrimStart then
-                state.removeFromStart = math.max(0, math.floor(newTrimStart))
-                state.needsPreview = true
-            end
-            if reaper.ImGui_IsItemHovered(ctx) then
-                reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Remove this many characters from the start/end of the name (before prefix/suffix). 0 = off.")
-                reaper.ImGui_EndTooltip(ctx)
-            end
-            reaper.ImGui_SameLine(ctx)
-            reaper.ImGui_Text(ctx, "End:")
-            reaper.ImGui_SameLine(ctx)
-            reaper.ImGui_SetNextItemWidth(ctx, 70)
-            local changedTrimEnd, newTrimEnd = reaper.ImGui_InputInt(ctx, "##truncEnd", state.removeFromEnd)
-            if changedTrimEnd then
-                state.removeFromEnd = math.max(0, math.floor(newTrimEnd))
-                state.needsPreview = true
-            end
-            if reaper.ImGui_IsItemHovered(ctx) then
-                reaper.ImGui_BeginTooltip(ctx)
-                reaper.ImGui_Text(ctx, "Remove this many characters from the start/end of the name (before prefix/suffix). 0 = off.")
-                reaper.ImGui_EndTooltip(ctx)
             end
 
             reaper.ImGui_Separator(ctx)

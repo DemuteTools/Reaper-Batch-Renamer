@@ -607,10 +607,17 @@ function Tracks.updatePreview(trackList, findText, replaceText, options)
     -- Update preview for each track
     for i, track in ipairs(trackList) do
         local newName = track.name
-        
+
+        -- Priority 0: truncate the SOURCE first — remove N chars from start/end of the original
+        -- name before any other transform, so find/replace, operation and templates all see the
+        -- already-trimmed source.
+        if (options.removeFromStart and options.removeFromStart > 0) or (options.removeFromEnd and options.removeFromEnd > 0) then
+            newName = Common.removeChars(newName, options.removeFromStart, options.removeFromEnd)
+        end
+
         -- Priority 1: Templates
         if options.useTemplate and options.templateString and options.templateString ~= "" then
-            local vars = Common.generateVariables(i, track.name, {
+            local vars = Common.generateVariables(i, newName, {
                 tracknum = track.trackNumber,
                 parent = track.parentName,
                 items = track.itemCount,
@@ -654,11 +661,6 @@ function Tracks.updatePreview(trackList, findText, replaceText, options)
             end
         end
         
-        -- Priority 3.7: Remove characters from start/end (before prefix/suffix)
-        if (options.removeFromStart and options.removeFromStart > 0) or (options.removeFromEnd and options.removeFromEnd > 0) then
-            newName = Common.removeChars(newName, options.removeFromStart, options.removeFromEnd)
-        end
-
         -- Priority 4: Prefix/Suffix
         if options.prefix and options.prefix ~= "" then
             newName = options.prefix .. newName
