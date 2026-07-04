@@ -1,8 +1,8 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.11.0-beta
+-- @version 0.12.0-beta
 -- @changelog
---   New option to show/hide the Folder Items "Context" column (Settings > General)
+--   New standalone action: apply renaming to the selected folder items (bindable to a key or toolbar button)
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -16,6 +16,7 @@
 --   [nomain] Modules/DM_RENAMER_Presets.lua
 --   [main] Modules/DM_RENAMER_TrackRegionMarkerSelection.lua
 --   [main] Modules/DM_RENAMER_ClearRegionMarkerSelection.lua
+--   [main] Modules/DM_RENAMER_ApplyToSelectedFolderItems.lua
 --   [nomain] Icons/DEMUTE-logoW.png
 --   [nomain] Icons/android-icon-24x24.png
 --   [nomain] Icons/Discord-Symbol-Blurple.png
@@ -38,12 +39,13 @@
 --   - Inline editing directly in the preview table
 --   - Customizable appearance (colors, scale, theme presets)
 --   - Companion scripts for region/marker click-selection
+--   - Standalone action to apply renaming to the selected folder items (bindable to a key/toolbar)
 --
 --   ## Requirements
 --   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
 --   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
-local DM_RENAMER_VERSION = "0.11.0-beta"
+local DM_RENAMER_VERSION = "0.12.0-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
@@ -52,7 +54,18 @@ reaper.RefreshToolbar2(sectionID, cmdID)
 reaper.atexit(function()
     reaper.SetToggleCommandState(sectionID, cmdID, 0)
     reaper.RefreshToolbar2(sectionID, cmdID)
+    -- Clear the "running" flag so companion actions know the window is gone.
+    reaper.SetExtState("DM_RENAMER", "Running", "", false)
 end)
+
+-- Publish a "running" flag so standalone companion actions (e.g. Apply to
+-- Selected Folder Items) can detect the window and decide between applying and
+-- prompting the user to launch it. Session-scoped; cleared on exit above.
+-- Also clear any stale one-shot apply signal left over from a previous session
+-- (e.g. if a prior instance was killed without its defer loop consuming it), so
+-- launching the window never triggers an unexpected rename on its first frame.
+reaper.SetExtState("DM_RENAMER", "ApplyFolderItems", "", false)
+reaper.SetExtState("DM_RENAMER", "Running", "1", false)
 
 -- Load modules
 local script_path = debug.getinfo(1,'S').source:match[[^@?(.*[\/])[^\/]-$]]
@@ -1452,7 +1465,14 @@ local function loop()
         if reaper.ImGui_BeginTabBar(ctx, "MainTabs") then
             -- 1. Folder Items (first and default) - only show if not explicitly hidden
             if Settings.getFolderItemUser() ~= false then
-                if reaper.ImGui_BeginTabItem(ctx, "Folder Items") then
+                -- Let the standalone "Apply to selected folder items" action force
+                -- this tab to the front when it drives an apply from outside.
+                local fiTabFlags = 0
+                if state.forceFolderItemsTab then
+                    fiTabFlags = reaper.ImGui_TabItemFlags_SetSelected()
+                    state.forceFolderItemsTab = false
+                end
+                if reaper.ImGui_BeginTabItem(ctx, "Folder Items", nil, fiTabFlags) then
                     if state.currentTab ~= "Folder Items" then
                         state.currentTab = "Folder Items"
                         state.needsRefresh = true
@@ -2538,6 +2558,18 @@ local function loop()
         reaper.ImGui_End(ctx)
     end
     
+    -- Companion action "Apply to selected folder items": consume the one-shot
+    -- signal, switch to the Folder Items tab, and queue an apply once the list
+    -- has refreshed and the preview has recomputed later this frame.
+    if reaper.GetExtState("DM_RENAMER", "ApplyFolderItems") == "1" then
+        reaper.SetExtState("DM_RENAMER", "ApplyFolderItems", "", false)  -- consume (one-shot)
+        state.currentTab = "Folder Items"
+        state.forceFolderItemsTab = true
+        state.needsRefresh = true
+        state.needsPreview = true
+        state.pendingFolderItemApply = true
+    end
+
     -- Check for project state changes (auto-refresh)
     if hasProjectStateChanged() then
         state.needsRefresh = true
@@ -2559,7 +2591,23 @@ local function loop()
     if state.needsPreview then
         updatePreview()
     end
-    
+
+    -- Companion action "Apply to selected folder items": now that the list is
+    -- refreshed and previewed, run the same Apply path as the in-window button.
+    -- Only proceed while folder items are actually selected in arrange (so a
+    -- selection that vanished can't trigger a rename of every folder item), and
+    -- check every row from the selection so the "select all by default" setting
+    -- can't leave the selected items unchecked and silently apply nothing.
+    if state.pendingFolderItemApply then
+        state.pendingFolderItemApply = false
+        if reaper.CountSelectedMediaItems(0) > 0 and #state.currentList > 0 then
+            for _, item in ipairs(state.currentList) do
+                item.checked = true
+            end
+            applyChanges()
+        end
+    end
+
     -- Pop all style colors and variables
     -- Pop base colors (9) plus any extra colors that were successfully pushed
     local totalColors = 9 + (state.extraColorsPushed or 0)

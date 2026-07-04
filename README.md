@@ -19,10 +19,11 @@ The script runs inside REAPER as a dockable ReaImGui window. Select a tab for th
 - **Tab-based element filtering:** Separate tabs for Media Items, Tracks, Regions, Markers, Folder Items, and a combined All view keep things organized.
 - **Preset system:** Save and recall your entire renaming configuration so you can reuse complex setups across sessions with one click.
 - **Companion scripts for region/marker selection:** Two lightweight helper scripts let you click-select regions and markers directly from the arrange view, working around REAPER's native API limitation.
+- **One-key folder-item rename:** A standalone action applies your current settings to the selected folder items in place — bind it to a key or toolbar button, no need to bring the window forward.
 
 ---
 
-**Version:** 0.11.0-beta
+**Version:** 0.12.0-beta
 **Author:** Anthony Deneyer
 
 ---
@@ -533,16 +534,24 @@ Four built-in appearance themes you can apply with one click:
 
 ## Companion Scripts
 
-Two additional scripts are included for region/marker selection in the arrange view:
+Standalone actions installed alongside the main tool that you can bind to a key, mouse modifier, or toolbar button:
 
 | Script | Purpose |
 |--------|---------|
 | **DM_RENAMER_TrackRegionMarkerSelection.lua** | Bind this to a mouse modifier or toolbar button. Clicking a region or marker in the arrange view selects it for the Renamer. Hold **Shift** to multi-select. |
 | **DM_RENAMER_ClearRegionMarkerSelection.lua** | Clears the current region/marker selection. |
+| **DM_RENAMER_ApplyToSelectedFolderItems.lua** | Bind this to a key or toolbar button. Applies your current rename settings to the **currently-selected folder items** in place — same result as the in-window **Apply Changes** — without bringing the window forward. See notes below. |
 
 **Setup:** In REAPER, go to **Actions > Show action list**, find these scripts, and assign them to a keyboard shortcut or mouse modifier.
 
-These scripts work best with the **SWS Extension** installed (Shift multi-select, precise region/marker detection). Without SWS, a fallback mode uses the cursor position for single-selection only.
+The region/marker selection scripts work best with the **SWS Extension** installed (Shift multi-select, precise region/marker detection). Without SWS, a fallback mode uses the cursor position for single-selection only.
+
+**Apply to Selected Folder Items** drives the running window, so behaviour always matches the in-window Apply (one undo point, item notes + take name). It never renames on its own:
+
+- The **DM Batch Renamer window must be running.** If it is closed, the action prints a message in the REAPER console asking you to launch it — it does not open the window or rename anything.
+- With **no folder item selected**, it does nothing at all (no rename, no message).
+- If the **Folder Items tab is hidden/disabled**, it prints a console message instead of renaming (enable the tab in Settings first).
+- It uses whatever rename settings the tool currently holds; it does not pick a preset.
 
 ---
 
