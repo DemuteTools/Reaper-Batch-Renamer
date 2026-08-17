@@ -191,5 +191,6 @@ unit to cover.
 4. **Settings serialisability** — only store serialisable values (no functions/metatables);
    add new settings to `getDefaultSettings()` and rely on deep-merge for back-compat.
 5. **ExtState section** — everything shared lives under section `"DM_RENAMER"`.
-6. **Release coupling** — a shipped change must bump the version in **both** `README.md`
-   and `index.xml` (see deployment guide).
+6. **Release coupling** — a shipped change bumps the version in `@version`,
+   `DM_RENAMER_VERSION` and `README.md`; `index.xml` is generated, never hand-edited
+   (see deployment guide).
