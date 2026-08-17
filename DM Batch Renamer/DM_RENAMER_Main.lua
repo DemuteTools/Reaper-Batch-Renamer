@@ -1257,28 +1257,6 @@ local function loop()
             end
         end
         
-        -- Draw pattern help window if open
-        drawPatternHelpWindow()
-        
-        -- Handle Settings window if open
-        if state.showSettingsWindow then
-            state.showSettingsWindow = SettingsUI.showSettingsWindow(state.showSettingsWindow)
-        end
-
-        -- Sync exclude tags and space replacement from Settings to state
-        -- (must be outside Settings window check to catch changes after window closes)
-        local settingsExclude = Settings.current.excludeTags or ""
-        if settingsExclude ~= state.excludeTags then
-            state.excludeTags = settingsExclude
-            state.needsRefresh = true
-            state.needsPreview = true
-        end
-        local settingsSpaceReplace = Settings.current.spaceReplacement or ""
-        if settingsSpaceReplace ~= state.spaceReplacement then
-            state.spaceReplacement = settingsSpaceReplace
-            state.needsPreview = true
-        end
-        
         -- Menu bar
         if reaper.ImGui_BeginMenuBar(ctx) then
             if reaper.ImGui_BeginMenu(ctx, "File") then
@@ -2554,10 +2532,35 @@ local function loop()
         -- Version text
         reaper.ImGui_SameLine(ctx, 0, 8)
         reaper.ImGui_TextDisabled(ctx, versionText)
-
-        reaper.ImGui_End(ctx)
     end
-    
+    reaper.ImGui_End(ctx)
+
+    -- Sibling top-level windows. Both calls below MUST stay outside the `if visible`
+    -- block above. Docked in the same REAPER docker, only one tab is visible per
+    -- frame and Begin returns false for the other one -- so gating these submissions
+    -- on the main window's visibility made it and the Settings window starve each
+    -- other and flip docker tabs every frame. They must also stay above the
+    -- PopStyleColor/PopStyleVar at the end of loop(), or they lose the theme.
+    drawPatternHelpWindow()  -- inert today: nothing sets state.showPatternHelp (toggle is commented out)
+    if state.showSettingsWindow then
+        state.showSettingsWindow = SettingsUI.showSettingsWindow(state.showSettingsWindow)
+    end
+
+    -- Sync exclude tags and space replacement from Settings to state
+    -- (must be outside Settings window check to catch changes after window closes,
+    -- and stays above the refresh/preview calls below so a change lands this frame)
+    local settingsExclude = Settings.current.excludeTags or ""
+    if settingsExclude ~= state.excludeTags then
+        state.excludeTags = settingsExclude
+        state.needsRefresh = true
+        state.needsPreview = true
+    end
+    local settingsSpaceReplace = Settings.current.spaceReplacement or ""
+    if settingsSpaceReplace ~= state.spaceReplacement then
+        state.spaceReplacement = settingsSpaceReplace
+        state.needsPreview = true
+    end
+
     -- Companion action "Apply to selected folder items": consume the one-shot
     -- signal, switch to the Folder Items tab, and queue an apply once the list
     -- has refreshed and the preview has recomputed later this frame.

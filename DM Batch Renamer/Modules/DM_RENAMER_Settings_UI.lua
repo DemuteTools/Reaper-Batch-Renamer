@@ -482,10 +482,12 @@ function SettingsUI.showSettingsWindow(open)
                 end
             end
         end
-        
-        reaper.ImGui_End(ctx)
     end
-    
+
+    -- Unconditional: End must match every Begin, including when Begin returned false
+    -- (window collapsed, or an inactive tab in a REAPER docker).
+    reaper.ImGui_End(ctx)
+
     return open
 end
 
