@@ -1,8 +1,8 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.12.0-beta
+-- @version 0.12.1-beta
 -- @changelog
---   New standalone action: apply renaming to the selected folder items (bindable to a key or toolbar button)
+--   Fix: docking the Settings window in the same REAPER docker as the main window made the UI flicker between the two tabs every frame
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -45,7 +45,7 @@
 --   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
 --   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
-local DM_RENAMER_VERSION = "0.12.0-beta"
+local DM_RENAMER_VERSION = "0.12.1-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
@@ -1057,9 +1057,11 @@ local function drawPatternHelpWindow()
             
             reaper.ImGui_EndTabBar(ctx)
         end
+
+        -- ReaImGui contract: End() only when Begin() returned true (see Settings_UI).
+        reaper.ImGui_End(ctx)
     end
-    reaper.ImGui_End(ctx)
-    
+
     if not open then
         state.showPatternHelp = false
     end
@@ -1255,28 +1257,6 @@ local function loop()
                     open = false  -- Close the window
                 end
             end
-        end
-        
-        -- Draw pattern help window if open
-        drawPatternHelpWindow()
-        
-        -- Handle Settings window if open
-        if state.showSettingsWindow then
-            state.showSettingsWindow = SettingsUI.showSettingsWindow(state.showSettingsWindow)
-        end
-
-        -- Sync exclude tags and space replacement from Settings to state
-        -- (must be outside Settings window check to catch changes after window closes)
-        local settingsExclude = Settings.current.excludeTags or ""
-        if settingsExclude ~= state.excludeTags then
-            state.excludeTags = settingsExclude
-            state.needsRefresh = true
-            state.needsPreview = true
-        end
-        local settingsSpaceReplace = Settings.current.spaceReplacement or ""
-        if settingsSpaceReplace ~= state.spaceReplacement then
-            state.spaceReplacement = settingsSpaceReplace
-            state.needsPreview = true
         end
         
         -- Menu bar
@@ -2555,9 +2535,36 @@ local function loop()
         reaper.ImGui_SameLine(ctx, 0, 8)
         reaper.ImGui_TextDisabled(ctx, versionText)
 
+        -- ReaImGui contract: End() only when Begin() returned true (see Settings_UI).
         reaper.ImGui_End(ctx)
     end
-    
+
+    -- Sibling top-level windows. Both calls below MUST stay outside the `if visible`
+    -- block above. Docked in the same REAPER docker, only one tab is visible per
+    -- frame and Begin returns false for the other one -- so gating these submissions
+    -- on the main window's visibility made it and the Settings window starve each
+    -- other and flip docker tabs every frame. They must also stay above the
+    -- PopStyleColor/PopStyleVar at the end of loop(), or they lose the theme.
+    drawPatternHelpWindow()  -- inert today: nothing sets state.showPatternHelp (toggle is commented out)
+    if state.showSettingsWindow then
+        state.showSettingsWindow = SettingsUI.showSettingsWindow(state.showSettingsWindow)
+    end
+
+    -- Sync exclude tags and space replacement from Settings to state
+    -- (must be outside Settings window check to catch changes after window closes,
+    -- and stays above the refresh/preview calls below so a change lands this frame)
+    local settingsExclude = Settings.current.excludeTags or ""
+    if settingsExclude ~= state.excludeTags then
+        state.excludeTags = settingsExclude
+        state.needsRefresh = true
+        state.needsPreview = true
+    end
+    local settingsSpaceReplace = Settings.current.spaceReplacement or ""
+    if settingsSpaceReplace ~= state.spaceReplacement then
+        state.spaceReplacement = settingsSpaceReplace
+        state.needsPreview = true
+    end
+
     -- Companion action "Apply to selected folder items": consume the one-shot
     -- signal, switch to the Folder Items tab, and queue an apply once the list
     -- has refreshed and the preview has recomputed later this frame.
