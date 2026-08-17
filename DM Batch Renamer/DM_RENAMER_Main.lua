@@ -1057,9 +1057,11 @@ local function drawPatternHelpWindow()
             
             reaper.ImGui_EndTabBar(ctx)
         end
+
+        -- ReaImGui contract: End() only when Begin() returned true (see Settings_UI).
+        reaper.ImGui_End(ctx)
     end
-    reaper.ImGui_End(ctx)
-    
+
     if not open then
         state.showPatternHelp = false
     end
@@ -2532,8 +2534,10 @@ local function loop()
         -- Version text
         reaper.ImGui_SameLine(ctx, 0, 8)
         reaper.ImGui_TextDisabled(ctx, versionText)
+
+        -- ReaImGui contract: End() only when Begin() returned true (see Settings_UI).
+        reaper.ImGui_End(ctx)
     end
-    reaper.ImGui_End(ctx)
 
     -- Sibling top-level windows. Both calls below MUST stay outside the `if visible`
     -- block above. Docked in the same REAPER docker, only one tab is visible per

@@ -482,11 +482,13 @@ function SettingsUI.showSettingsWindow(open)
                 end
             end
         end
-    end
 
-    -- Unconditional: End must match every Begin, including when Begin returned false
-    -- (window collapsed, or an inactive tab in a REAPER docker).
-    reaper.ImGui_End(ctx)
+        -- ReaImGui contract: End() is called ONLY when Begin() returned true. Unlike
+        -- upstream Dear ImGui, ReaImGui already unwinds the window when Begin() returns
+        -- false (collapsed, or an inactive tab in a REAPER docker); an unconditional
+        -- End() there raises "ImGui_End: Calling End() too many times!".
+        reaper.ImGui_End(ctx)
+    end
 
     return open
 end
