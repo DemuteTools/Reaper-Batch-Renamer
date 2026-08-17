@@ -1,8 +1,8 @@
 -- @description DM Renamer - Batch Renaming Tool
 -- @author Anthony Deneyer
--- @version 0.12.0-beta
+-- @version 0.12.1-beta
 -- @changelog
---   New standalone action: apply renaming to the selected folder items (bindable to a key or toolbar button)
+--   Fix: docking the Settings window in the same REAPER docker as the main window made the UI flicker between the two tabs every frame
 -- @provides
 --   [nomain] Modules/DM_RENAMER_Common.lua
 --   [nomain] Modules/DM_RENAMER_Items.lua
@@ -45,7 +45,7 @@
 --   - [ReaImGui](https://forum.cockos.com/showthread.php?t=250419) (installed automatically via ReaPack)
 --   - Optional: [SWS Extension](https://www.sws-extension.org/) for region/marker click-selection
 
-local DM_RENAMER_VERSION = "0.12.0-beta"
+local DM_RENAMER_VERSION = "0.12.1-beta"
 
 -- Toggle action state (toolbar on/off indicator)
 local _, _, sectionID, cmdID = reaper.get_action_context()
